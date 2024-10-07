@@ -74,6 +74,7 @@ void ElectraClimate::control(const climate::ClimateCall &call) {
 }
 
 void ElectraClimate::transmit_state() {
+  if (this->active_mode_ != climate::CLIMATE_MODE_OFF || this->mode != climate::CLIMATE_MODE_OFF){
     ElectraCode code = { 0 };
     code.ones1 = 1;
  // original before the switch    code.fan = IRElectraFan::IRElectraFanAuto;
@@ -129,7 +130,7 @@ void ElectraClimate::transmit_state() {
       case climate::CLIMATE_MODE_OFF:
       default:
         code.mode = IRElectraMode::IRElectraModeOff;
-        code.power = this->active_mode_ != climate::CLIMATE_MODE_OFF ? 1 : 0;
+        code.power = 1;
         break;
     }
     auto temp = (uint8_t) roundf(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
@@ -198,6 +199,7 @@ void ElectraClimate::transmit_state() {
     data->mark(4 * ELECTRA_TIME_UNIT);
 
     transmit.perform();
+  }
 } // end transmit state
 
 
