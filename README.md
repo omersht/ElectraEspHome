@@ -7,9 +7,9 @@ external_components:
       type: git
       url: https://github.com/omersht/ElectraEspHome
       ref: main
+```
 this is built over the original [IR Climate Remote](https://esphome.io/components/climate/climate_ir.html), with liads logic, and the tweaks requierd for an electra AC,
 so yaml config is the exact same as the [IR Climate Remote](https://esphome.io/components/climate/climate_ir.html), just replace the
-```
 
 ```
 climate:
