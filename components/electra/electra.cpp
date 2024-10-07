@@ -74,7 +74,19 @@ void ElectraClimate::control(const climate::ClimateCall &call) {
 }
 
 void ElectraClimate::transmit_state() {
-    if (this->active_mode_ != climate::CLIMATE_MODE_OFF || this->mode != climate::CLIMATE_MODE_OFF){
+
+  if (this->active_mode_ != climate::CLIMATE_MODE_OFF)
+  {
+    ESP_LOGD(TAG, "Sending electra code: active mode is not off",;
+  }
+  if (this->mode != climate::CLIMATE_MODE_OFF)
+  {
+    ESP_LOGD(TAG, "Sending electra code: mode is not off",);
+  }
+  
+  
+
+  if (this->active_mode_ != climate::CLIMATE_MODE_OFF || this->mode != climate::CLIMATE_MODE_OFF){
     ElectraCode code = { 0 };
     code.ones1 = 1;
  // original before the switch    code.fan = IRElectraFan::IRElectraFanAuto;
