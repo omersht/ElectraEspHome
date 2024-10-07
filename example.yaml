@@ -1,0 +1,22 @@
+external_components:
+  - source:
+      type: git
+      url: https://github.com/omersht/ElectraEspHome
+      ref: main
+
+sensor:
+  - platform: tempsensor
+    name: "Temperature"
+    id: temp
+
+remote_transmitter:
+ pin: (your pin)
+ carrier_duty_percent: 50%  #test with different values to see what works best
+ id: ir_transmitter
+
+ climate:
+  - platform: electra
+    name: (your name)
+    transmitter_id: ir_transmitter
+    sensor: temp
+    # all options suported in IR Remote Climate are suported
