@@ -74,8 +74,7 @@ void ElectraClimate::control(const climate::ClimateCall &call) {
 }
 
 void ElectraClimate::transmit_state() {
-
-
+    if (this->active_mode_ != climate::CLIMATE_MODE_OFF || this->mode != climate::CLIMATE_MODE_OFF){
     ElectraCode code = { 0 };
     code.ones1 = 1;
  // original before the switch    code.fan = IRElectraFan::IRElectraFanAuto;
@@ -200,7 +199,10 @@ void ElectraClimate::transmit_state() {
     data->mark(4 * ELECTRA_TIME_UNIT);
 
     transmit.perform();
+    }
 } // end transmit state
+
+
 bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   ESP_LOGVV(data);
   return false;
