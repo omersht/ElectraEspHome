@@ -1,6 +1,6 @@
 this is an implementation of [liads ElectraClimate](https://gist.github.com/liads/c702fd4b8529991af9cd52d03b694814). with a few tweaks and fixes, and as a external component,
 since custom components are now being [deprecated](https://esphome.io/guides/contributing#a-note-about-custom-components).
-to install add to your yamel config:
+to install add to your yaml config:
 ```
 external_components:
   - source:
