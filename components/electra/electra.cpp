@@ -79,10 +79,12 @@ void ElectraClimate::transmit_state() {
   {
     ESP_LOGD(TAG, "Sending electra code: active mode is not off",;
   }
+  else {ESP_LOGD(TAG, "Sending electra code: active mode is off",;}
   if (this->mode != climate::CLIMATE_MODE_OFF)
   {
     ESP_LOGD(TAG, "Sending electra code: mode is not off",);
   }
+  else {ESP_LOGD(TAG, "Sending electra code: mode is off",);}
   
   
 
