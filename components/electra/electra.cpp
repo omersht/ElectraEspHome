@@ -6,7 +6,6 @@ namespace electra {
 
 static const char *const TAG = "electra.climate";
 
-
 #define ELECTRA_TIME_UNIT 1000
 #define ELECTRA_NUM_BITS 34
 
@@ -16,8 +15,9 @@ typedef enum IRElectraMode {
     IRElectraModeAuto = 0b011,
     IRElectraModeDry  = 0b100,
     IRElectraModeFan  = 0b101,
-    IRElectraModeOff  = 0b001
+    IRElectraModeOff  = 0b111
 } IRElectraMode;
+
 
 typedef enum IRElectraFan {
     IRElectraFanLow    = 0b00,
@@ -57,6 +57,7 @@ typedef union ElectraCode {
     };
 } ElectraCode;
 
+
 void ElectraClimate::setup() {
   climate_ir::ClimateIR::setup();
 
@@ -71,6 +72,15 @@ void ElectraClimate::setup() {
 void ElectraClimate::control(const climate::ClimateCall &call) {
   climate_ir::ClimateIR::control(call);
   this->active_mode_ = this->mode;
+}
+
+void ElectraClimate::setOffSupport(bool supports){
+  if (supports){
+    this->supportsOff = true;
+  }
+  else {
+    this->supportsOff = false;
+  }
 }
 
 void ElectraClimate::transmit_state() {
@@ -129,8 +139,13 @@ void ElectraClimate::transmit_state() {
         break;
       case climate::CLIMATE_MODE_OFF:
       default:
-        code.mode = IRElectraMode::IRElectraModeOff;
-        code.power = 1;
+        if (supportsOff){
+          code.mode = IRElectraMode::IRElectraModeOff;
+          code.power = 1;
+        }else {
+          code.mode = IRElectraMode::IRElectraModeCool;
+          code.power = 1;
+        }
         break;
     }
     auto temp = (uint8_t) roundf(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
@@ -204,9 +219,9 @@ void ElectraClimate::transmit_state() {
 
 
 bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
-  ESP_LOGVV(data);
   return false;
 }
+
 
 
 } // name space electra
