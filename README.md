@@ -28,9 +28,28 @@ climate:
   - platform: electra
     name: basment ac
     transmitter_id: ir_transmitter
+    id: someid
     supports_off_command: True #defaults to True
 ```
 supports_off_command: it is recomended to try it out with true, and only if there is no success change it to False.
+
+if you wish to be able to sync the state of the ac, (change saved state without sending any ir code) using an Home Assistant service call, add this to your yaml;
+```
+api:
+  actions:
+    - action: sync_electra_state
+      then:
+        - lambda: |-
+            id(someid).sync_state();
+```
+change the id to the id you set up in the climate declartion(step above).
+then you can call this in homeassistant with:
+action: esphome.YourDeviceName_sync_electra_state
+replace the YourDeviceName with the name definde under:
+```
+esphome:
+  name: YourDeviceName
+```
 
 to do list:
 * add reciving capabilities.(I am trying to figure it out, but with no sucsses, if you can help please make a PR)
