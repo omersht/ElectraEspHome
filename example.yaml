@@ -18,5 +18,6 @@ remote_transmitter:
   - platform: electra
     name: (your name)
     transmitter_id: ir_transmitter
+    supports_off_command: True
     sensor: temp
     # all options suported in IR Remote Climate are suported

@@ -19,9 +19,12 @@ class ElectraClimate : public climate_ir::ClimateIR {
                               }
 
   void setup() override;
+  void setOffSupport(bool supports);
 
 
  protected:
+  /// declartion of supports off command
+  bool supportsOff;
   /// declartion of active mode value
   climate::ClimateMode active_mode_;
   /// Transmit via IR the state of this climate controller.
@@ -31,6 +34,12 @@ class ElectraClimate : public climate_ir::ClimateIR {
   /// override control
   void control(const climate::ClimateCall &call) override;
 };
+
+
+
+
+}  // namespace electra
+}  //namespace esphome
 
 
 

@@ -20,6 +20,17 @@ with:
 climate:
   - platform: electra
 ```
+additional options:
+
+Electra AC's(airwell) uses the same command for on/off, but some of these devices also supports a dedicated off command, that will turn the AC off if its on, but wont turn it on if its off, but not all Electra AC's respond to this command.
+```
+climate:
+  - platform: electra
+    name: basment ac
+    transmitter_id: ir_transmitter
+    supports_off_command: True #defaults to True
+```
+supports_off_command: it is recomended to try it out with true, and only if there is no success change it to False.
 
 to do list:
-add reciving capabilities.
+* add reciving capabilities.(I am trying to figure it out, but with no sucsses, if you can help please make a PR)
