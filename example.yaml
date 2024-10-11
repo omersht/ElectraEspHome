@@ -1,8 +1,19 @@
+esphome:
+  name: YourDevcieName
+  friendly_name: Your Devcie Name
+
 external_components:
   - source:
       type: git
       url: https://github.com/omersht/ElectraEspHome
       ref: main
+
+api:
+  actions:
+    - action: sync_electra_state
+      then:
+        - lambda: |-
+            id(someid).sync_state();
 
 sensor:
   - platform: tempsensor
@@ -17,6 +28,7 @@ remote_transmitter:
  climate:
   - platform: electra
     name: (your name)
+    id: someid
     transmitter_id: ir_transmitter
     supports_off_command: True
     sensor: temp
