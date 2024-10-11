@@ -83,6 +83,17 @@ void ElectraClimate::setOffSupport(bool supports){
   }
 }
 
+void ElectraClimate::sync_state(){
+  if (this->mode == climate::CLIMATE_MODE_OFF){
+    this->mode = climate::CLIMATE_MODE_COOL;
+  }
+  else {
+    this->mode = climate::CLIMATE_MODE_OFF;
+  }
+
+  this->publish_state();
+}
+
 void ElectraClimate::transmit_state() {
   if (this->active_mode_ != climate::CLIMATE_MODE_OFF || this->mode != climate::CLIMATE_MODE_OFF){
     ElectraCode code = { 0 };

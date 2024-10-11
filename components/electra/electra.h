@@ -20,6 +20,7 @@ class ElectraClimate : public climate_ir::ClimateIR {
 
   void setup() override;
   void setOffSupport(bool supports);
+  void sync_state();
 
 
  protected:
@@ -34,12 +35,6 @@ class ElectraClimate : public climate_ir::ClimateIR {
   /// override control
   void control(const climate::ClimateCall &call) override;
 };
-
-
-
-
-}  // namespace electra
-}  //namespace esphome
 
 
 
