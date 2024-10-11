@@ -53,3 +53,4 @@ esphome:
 
 to do list:
 * add reciving capabilities.(I am trying to figure it out, but with no sucsses, if you can help please make a PR)
+* create an home assistant blueprint, to enable the use of contact sensors on the ac the report the actual state
