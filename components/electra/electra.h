@@ -72,7 +72,7 @@ class ElectraClimate : public climate_ir::ClimateIR {
  protected:
 
   /// declartion of variables
-  #define ELECTRA_DECODE_TIME_UNIT 950 // while the time unit supposed to be the same, I have found decoding to work better 950 while encoding with 1000
+  #define ELECTRA_DECODE_TIME_UNIT 975 // while the time unit supposed to be the same, I have found decoding to work better 975 while encoding with 1000
   #define ELECTRA_TIME_UNIT 1000
   #define ELECTRA_NUM_BITS 34
   bool supportsOff;
