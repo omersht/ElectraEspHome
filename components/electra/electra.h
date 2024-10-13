@@ -8,6 +8,52 @@ namespace electra {
     // Temperature
 const float RC3_TEMP_MIN = 16.0;
 const float RC3_TEMP_MAX = 30.0;
+typedef union ElectraCode {
+ // That configuration has a total of 34 bits
+ //    33: Power bit, if this bit is ON, the A/C will toggle it's power.
+ // 32-30: Mode - Cool, heat etc.
+ // 29-28: Fan - Low, medium etc.
+ // 27-26: Zeros
+ //    25: Swing On/Off
+ //    24: iFeel On/Off
+ //    23: Zero
+ // 22-19: Temperature, where 15 is 0000, 30 is 1111
+ //    18: Sleep mode On/Off
+ // 17- 2: Zeros
+ //     1: One
+ //     0: Zero
+    uint64_t num;
+    struct {
+        uint64_t zeros1 : 1;
+        uint64_t ones1 : 1;
+        uint64_t zeros2 : 16;
+        uint64_t sleep : 1;
+        uint64_t temperature : 4;
+        uint64_t zeros3 : 1;
+        uint64_t ifeel : 1;
+        uint64_t swing : 1;
+        uint64_t zeros4 : 2;
+        uint64_t fan : 2;
+        uint64_t mode : 3;
+        uint64_t power : 1;
+    };
+} ElectraCode;
+typedef enum IRElectraFan {
+    IRElectraFanLow    = 0b00,
+    IRElectraFanMedium = 0b01,
+    IRElectraFanHigh   = 0b10,
+    IRElectraFanAuto   = 0b11
+} IRElectraFan;
+typedef enum IRElectraMode {
+    IRElectraModeCool = 0b001,
+    IRElectraModeHeat = 0b010,
+    IRElectraModeAuto = 0b011,
+    IRElectraModeDry  = 0b100,
+    IRElectraModeFan  = 0b101,
+    IRElectraModeOff  = 0b111
+} IRElectraMode;
+
+
 
 class ElectraClimate : public climate_ir::ClimateIR {
  public:
@@ -24,7 +70,10 @@ class ElectraClimate : public climate_ir::ClimateIR {
 
 
  protected:
-  /// declartion of supports off command
+
+  ElectraCode decode_electra(remote_base::RemoteReceiveData &data);
+  #define ELECTRA_TIME_UNIT 975
+  #define ELECTRA_NUM_BITS 34
   bool supportsOff;
   /// declartion of active mode value
   climate::ClimateMode active_mode_;

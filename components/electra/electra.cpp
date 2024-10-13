@@ -6,58 +6,6 @@ namespace electra {
 
 static const char *const TAG = "electra.climate";
 
-#define ELECTRA_TIME_UNIT 950
-#define ELECTRA_NUM_BITS 34
-
-typedef enum IRElectraMode {
-    IRElectraModeCool = 0b001,
-    IRElectraModeHeat = 0b010,
-    IRElectraModeAuto = 0b011,
-    IRElectraModeDry  = 0b100,
-    IRElectraModeFan  = 0b101,
-    IRElectraModeOff  = 0b111
-} IRElectraMode;
-
-
-typedef enum IRElectraFan {
-    IRElectraFanLow    = 0b00,
-    IRElectraFanMedium = 0b01,
-    IRElectraFanHigh   = 0b10,
-    IRElectraFanAuto   = 0b11
-} IRElectraFan;
-
-typedef union ElectraCode {
- // That configuration has a total of 34 bits
- //    33: Power bit, if this bit is ON, the A/C will toggle it's power.
- // 32-30: Mode - Cool, heat etc.
- // 29-28: Fan - Low, medium etc.
- // 27-26: Zeros
- //    25: Swing On/Off
- //    24: iFeel On/Off
- //    23: Zero
- // 22-19: Temperature, where 15 is 0000, 30 is 1111
- //    18: Sleep mode On/Off
- // 17- 2: Zeros
- //     1: One
- //     0: Zero
-    uint64_t num;
-    struct {
-        uint64_t zeros1 : 1;
-        uint64_t ones1 : 1;
-        uint64_t zeros2 : 16;
-        uint64_t sleep : 1;
-        uint64_t temperature : 4;
-        uint64_t zeros3 : 1;
-        uint64_t ifeel : 1;
-        uint64_t swing : 1;
-        uint64_t zeros4 : 2;
-        uint64_t fan : 2;
-        uint64_t mode : 3;
-        uint64_t power : 1;
-    };
-} ElectraCode;
-
-
 void ElectraClimate::setup() {
   climate_ir::ClimateIR::setup();
 
@@ -230,6 +178,83 @@ void ElectraClimate::transmit_state() {
 
 
 bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
+  ElectraCode decode;
+  decode = decode_electra(data);
+  if (decode.num == 0){
+    ESP_LOGV(TAG, "retrying to decode");
+    for(int i = 0; i < 50; i++){
+      if (data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT*3) || data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT*4)){
+        decode = decode_electra(data);
+        i = 50;
+      }
+      else{
+        data.advance();
+      }
+    }
+  }
+  else{ 
+      ESP_LOGV(TAG, "Sucsses!");
+  }
+
+  if (decode.num == 0) return false;
+
+  if ((decode.power) == 1 && (this->mode != climate::CLIMATE_MODE_OFF)){ // if this is a power command, and the state is not off, turn off.
+    this->mode = climate::CLIMATE_MODE_OFF;
+  }
+  else if ((decode.power != 1 ) && (this->mode == climate::CLIMATE_MODE_OFF)){ // if there is a state change while the ac is off
+    ESP_LOGD(TAG, "An change mode command was recived, but the ac is off");
+  }
+  else { // else, set the correct mode
+    switch (decode.mode) {// changes the mode to the received one
+      case IRElectraMode::IRElectraModeCool:
+        this->mode = climate::CLIMATE_MODE_COOL;
+        break;
+      case IRElectraMode::IRElectraModeHeat:
+        this->mode = climate::CLIMATE_MODE_HEAT;
+        break;
+      case IRElectraMode::IRElectraModeFan:
+        this->mode = climate::CLIMATE_MODE_FAN_ONLY;
+        break;
+      case IRElectraMode::IRElectraModeAuto:
+        this->mode = climate::CLIMATE_MODE_HEAT_COOL;
+        break;
+      case IRElectraMode::IRElectraModeDry:
+        this->mode = climate::CLIMATE_MODE_DRY;
+        break;
+    }
+  }
+
+  switch (decode.fan) {// changes the fan to the received one
+    case IRElectraFan::IRElectraFanLow:
+      this->fan_mode = climate::CLIMATE_FAN_LOW;
+      break;
+    case IRElectraFan::IRElectraFanMedium:
+      this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
+      break;
+    case IRElectraFan::IRElectraFanHigh:
+      this->fan_mode = climate::CLIMATE_FAN_HIGH;
+      break;
+    case IRElectraFan::IRElectraFanAuto:
+      this->fan_mode = climate::CLIMATE_FAN_AUTO;
+      break;
+  }
+
+  if (decode.swing == 1){ // swing
+    this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
+  }
+  else {
+    this->swing_mode = climate::CLIMATE_SWING_OFF;
+  }
+
+  this->target_temperature = (decode.temperature + 15); // temp
+
+  this->active_mode_ = this->mode; // keep the active mode in sync
+  this->publish_state(); // update HA
+  return true;
+
+} // end on recive
+
+ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData &data){
 
   bool bits[ELECTRA_NUM_BITS*2]; // a list of all bits tranlstaed, Mark -> 0 Space -> 1
   ElectraCode decode = { 0 }; // reset the Electra code union
@@ -242,7 +267,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
 
       }else {
       ESP_LOGV(TAG, "Header fail");
-      return false;
+      return { 0 };
     }
   }
 
@@ -251,7 +276,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   for (size_t i = 0; i < (ELECTRA_NUM_BITS*2); ++i) {
     bits[i] = false; // Initialize all bits to 0
   }
-  for (size_t i = 0; i < (2*ELECTRA_NUM_BITS);){ // this fuanction make  68 bit list of true or false based on the raw input
+  for (size_t i = 0; i < (2*ELECTRA_NUM_BITS);){ // this fuanction make a 68 bit list of true or false based on the raw input
     if(longheader && data.peek_mark(ELECTRA_TIME_UNIT*2)){
       longheader = false;
       bits[i] = true;
@@ -285,7 +310,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     }
     else{
       ESP_LOGV(TAG, "bit duration error");
-      return false;
+      return { 0 };
     }
     data.advance(); // moves to next bit
   }
@@ -299,73 +324,18 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     }
     else {
       ESP_LOGV(TAG, "not manchester coded");
-      return false;
+      return  { 0 };
     }
   } // munchster tranlation, every 2 bits are migrated into 1, if its 10 -> 1, if 01 -> 1, if 00 or 11, this is an error.
 
   if (!decode.ones1 == 1 || !decode.zeros1 == 0 || !decode.zeros2 == 0){
     ESP_LOGD(TAG, "decoded command does not meet expectations");
-    return false;
+    return { 0 };
   } // make sure the decoded code falls within electra expectations
 
-
+  return decode;
   ESP_LOGV(TAG, "Recived electra code: %llu", decode.num);
-  if ((decode.power) == 1 && (this->mode != climate::CLIMATE_MODE_OFF)){ // if this is a power command, and the state is not off, turn off.
-    this->mode = climate::CLIMATE_MODE_OFF;
-  }
-  else if ((decode.power != 1 ) && (this->mode == climate::CLIMATE_MODE_OFF)){ // if there is a state change while the ac is off
-    ESP_LOGD(TAG, "An change mode command was recived, but the ac is off");
-  }
-  else { // else, set the correct mode
-    switch (decode.mode) {// changes the mode to the recived one
-      case IRElectraMode::IRElectraModeCool:
-        this->mode = climate::CLIMATE_MODE_COOL;
-        break;
-      case IRElectraMode::IRElectraModeHeat:
-        this->mode = climate::CLIMATE_MODE_HEAT;
-        break;
-      case IRElectraMode::IRElectraModeFan:
-        this->mode = climate::CLIMATE_MODE_FAN_ONLY;
-        break;
-      case IRElectraMode::IRElectraModeAuto:
-        this->mode = climate::CLIMATE_MODE_HEAT_COOL;
-        break;
-      case IRElectraMode::IRElectraModeDry:
-        this->mode = climate::CLIMATE_MODE_DRY;
-        break;
-    }
-  }
-
-  switch (decode.fan) {// changes the fan to the recived one
-    case IRElectraFan::IRElectraFanLow:
-      this->fan_mode = climate::CLIMATE_FAN_LOW;
-      break;
-    case IRElectraFan::IRElectraFanMedium:
-      this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
-      break;
-    case IRElectraFan::IRElectraFanHigh:
-      this->fan_mode = climate::CLIMATE_FAN_HIGH;
-      break;
-    case IRElectraFan::IRElectraFanAuto:
-      this->fan_mode = climate::CLIMATE_FAN_AUTO;
-      break;
-  }
-
-  if (decode.swing == 1){ // swing
-    this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
-  }
-  else {
-    this->swing_mode = climate::CLIMATE_SWING_OFF;
-  }
-
-
-  this->target_temperature = (decode.temperature + 15); // temp
-
-  this->active_mode_ = this->mode; // keep the active mode in sync
-  this->publish_state(); // update HA
-  return true;
-
-} // end on recive
+}
 
 } // name space electra
 }// namespace esphome
