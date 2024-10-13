@@ -317,7 +317,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     ESP_LOGD(TAG, "An change mode command was recived, but the ac is off");
   }
   else { // else, set the correct mode
-    switch (decode.mode) {// changes the mode to the recived one
+    switch (decode.mode) {// changes the mode to the received one
       case IRElectraMode::IRElectraModeCool:
         this->mode = climate::CLIMATE_MODE_COOL;
         break;
@@ -336,7 +336,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     }
   }
 
-  switch (decode.fan) {// changes the fan to the recived one
+  switch (decode.fan) {// changes the fan to the received one
     case IRElectraFan::IRElectraFanLow:
       this->fan_mode = climate::CLIMATE_FAN_LOW;
       break;
