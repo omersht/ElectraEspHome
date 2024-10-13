@@ -182,10 +182,10 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   decode = decode_electra(data);
   if (decode.num == 0){
     ESP_LOGV(TAG, "retrying to decode");
-    for(int i = 0; i < 50; i++){
+    for(int i = 0; i < (2*ELECTRA_NUM_BITS); i++){
       if (data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT*3) || data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT*4)){
         decode = decode_electra(data);
-        i = 50;
+        i = (2*ELECTRA_NUM_BITS);
       }
       else{
         data.advance();
