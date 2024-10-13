@@ -71,18 +71,23 @@ class ElectraClimate : public climate_ir::ClimateIR {
 
  protected:
 
-  ElectraCode decode_electra(remote_base::RemoteReceiveData &data);
+  /// declartion of variables
+  #define ELECTRA_DECODE_TIME_UNIT 950 // while the time unit supposed to be the same, I have found decoding to work better 950 while encoding with 1000
   #define ELECTRA_TIME_UNIT 1000
   #define ELECTRA_NUM_BITS 34
   bool supportsOff;
-  /// declartion of active mode value
-  climate::ClimateMode active_mode_;
+  /// end declartion
+
+
   /// Transmit via IR the state of this climate controller.
   void transmit_state() override;
   /// Handle received IR Buffer
   bool on_receive(remote_base::RemoteReceiveData data) override;
   /// override control
   void control(const climate::ClimateCall &call) override;
+  /// decodes the incoming signal
+  ElectraCode decode_electra(remote_base::RemoteReceiveData data);
+  ElectraCode analyze_electra(remote_base::RemoteReceiveData &data);
 };
 
 
