@@ -72,7 +72,7 @@ class ElectraClimate : public climate_ir::ClimateIR {
  protected:
 
   ElectraCode decode_electra(remote_base::RemoteReceiveData &data);
-  #define ELECTRA_TIME_UNIT 975
+  #define ELECTRA_TIME_UNIT 1000
   #define ELECTRA_NUM_BITS 34
   bool supportsOff;
   /// declartion of active mode value
