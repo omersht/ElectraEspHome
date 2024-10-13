@@ -53,4 +53,4 @@ esphome:
 ```
 
 to do list:
-* create an home assistant blueprint, to enable the use of contact sensors on the ac the report the actual state
+* create an home assistant blueprint, to enable the use of contact sensors on the ac to report the actual state
