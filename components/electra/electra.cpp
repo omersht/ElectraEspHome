@@ -241,7 +241,7 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
   ElectraCode decode = { 0 }; // reset the Electra code union
   bool longheader = false; // if the command is a turn on/off the first bit is 1, that means space -> mark, but the header also ends with space, so there is a "long header"
 
-  if (data.expect_space(ELECTRA_DECODE_TIME_UNIT *4)){ // handles long header 
+  if (data.expect_space(ELECTRA_DECODE_SPACE_TIME_UNIT *4)){ // handles long header 
     longheader = true;
   } else data.advance();
 
@@ -250,33 +250,33 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
     bits[i] = false; // Initialize all bits to 0
   }
   for (size_t i = 0; i < (2*ELECTRA_NUM_BITS);){ // this fuanction make a 68 bit list of true or false based on the raw input
-    if(longheader && data.peek_mark(ELECTRA_DECODE_TIME_UNIT*2)){
+    if(longheader && data.peek_mark(ELECTRA_DECODE_DOUBLE_MARK_TIME_UNIT)){
       longheader = false;
       bits[i] = true;
       bits[i + 1] = false;
       bits[i + 2] = false;
       i += 3;
     }
-    else if (longheader && data.peek_mark(ELECTRA_DECODE_TIME_UNIT)){
+    else if (longheader && (data.peek_mark(ELECTRA_DECODE_MARK_TIME_UNIT) || data.peek_mark(ELECTRA_DECODE_SHORT_MARK_TIME_UNIT))){
       longheader = false;
       bits[i] = true;
       bits[i + 1] = false;
       i += 2;
     }
-    else if (data.peek_mark(ELECTRA_DECODE_TIME_UNIT)){ 
+    else if (data.peek_mark(ELECTRA_DECODE_MARK_TIME_UNIT) || data.peek_mark(ELECTRA_DECODE_SHORT_MARK_TIME_UNIT)){ 
       bits[i] = false;
       i++;
     }
-    else if (data.peek_space(ELECTRA_DECODE_TIME_UNIT)){
+    else if (data.peek_space(ELECTRA_DECODE_SPACE_TIME_UNIT)){
       bits[i] = true;
       i++;
     } 
-    else if (data.peek_mark(ELECTRA_DECODE_TIME_UNIT*2)){
+    else if (data.peek_mark(ELECTRA_DECODE_DOUBLE_MARK_TIME_UNIT)){
       bits[i] = false;
       bits[i + 1] = false;
       i += 2;
     }
-    else if (data.peek_space(ELECTRA_DECODE_TIME_UNIT*2)){
+    else if (data.peek_space(ELECTRA_DECODE_SPACE_TIME_UNIT*2)){
       bits[i] = true;
       bits[i + 1] = true;
       i += 2;
@@ -315,7 +315,7 @@ ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data
   int runs;
   for (int j = 0; j < 3; j++){
     runs = 0;
-    for ( ;(!data.expect_mark(ELECTRA_DECODE_TIME_UNIT*3)) && runs < (2*ELECTRA_NUM_BITS); runs ++)
+    for ( ;(!data.expect_mark(ELECTRA_DECODE_TRIPLE_MARK_TIME_UNIT)) && runs < (2*ELECTRA_NUM_BITS); runs ++)
     if (runs >= ((2 * ELECTRA_NUM_BITS) - 1)){ // it has been 68 bits without finding an header, give up!
       ESP_LOGV(TAG, "No Headers Found, Stops Searching" );
       return { 0 };
