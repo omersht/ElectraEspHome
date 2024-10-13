@@ -6,58 +6,6 @@ namespace electra {
 
 static const char *const TAG = "electra.climate";
 
-#define ELECTRA_TIME_UNIT 950
-#define ELECTRA_NUM_BITS 34
-
-typedef enum IRElectraMode {
-    IRElectraModeCool = 0b001,
-    IRElectraModeHeat = 0b010,
-    IRElectraModeAuto = 0b011,
-    IRElectraModeDry  = 0b100,
-    IRElectraModeFan  = 0b101,
-    IRElectraModeOff  = 0b111
-} IRElectraMode;
-
-
-typedef enum IRElectraFan {
-    IRElectraFanLow    = 0b00,
-    IRElectraFanMedium = 0b01,
-    IRElectraFanHigh   = 0b10,
-    IRElectraFanAuto   = 0b11
-} IRElectraFan;
-
-typedef union ElectraCode {
- // That configuration has a total of 34 bits
- //    33: Power bit, if this bit is ON, the A/C will toggle it's power.
- // 32-30: Mode - Cool, heat etc.
- // 29-28: Fan - Low, medium etc.
- // 27-26: Zeros
- //    25: Swing On/Off
- //    24: iFeel On/Off
- //    23: Zero
- // 22-19: Temperature, where 15 is 0000, 30 is 1111
- //    18: Sleep mode On/Off
- // 17- 2: Zeros
- //     1: One
- //     0: Zero
-    uint64_t num;
-    struct {
-        uint64_t zeros1 : 1;
-        uint64_t ones1 : 1;
-        uint64_t zeros2 : 16;
-        uint64_t sleep : 1;
-        uint64_t temperature : 4;
-        uint64_t zeros3 : 1;
-        uint64_t ifeel : 1;
-        uint64_t swing : 1;
-        uint64_t zeros4 : 2;
-        uint64_t fan : 2;
-        uint64_t mode : 3;
-        uint64_t power : 1;
-    };
-} ElectraCode;
-
-
 void ElectraClimate::setup() {
   climate_ir::ClimateIR::setup();
 
@@ -230,86 +178,26 @@ void ElectraClimate::transmit_state() {
 
 
 bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
-
-  bool bits[ELECTRA_NUM_BITS*2]; // a list of all bits tranlstaed, Mark -> 0 Space -> 1
-  ElectraCode decode = { 0 }; // reset the Electra code union
-  bool longheader = false; // if the command is a turn on/off the first bit is 1, that means space -> mark, but the header also ends with space, so there is a "long header"
-
-
-  if (!data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT *3)) { // handles header
-    if (data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT *4)){ // handles long header 
-      longheader = true;
-
-      }else {
-      ESP_LOGV(TAG, "Header fail");
-      return false;
+  ElectraCode decode;
+  decode = decode_electra(data);
+  if (decode.num == 0){
+    ESP_LOGV(TAG, "retrying to decode");
+    for(int i = 0; i < 50; i++){
+      if (data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT*3) || data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT*4)){
+        decode = decode_electra(data);
+        i = 50;
+      }
+      else{
+        data.advance();
+      }
     }
   }
-
-  data.advance(2);  // Skip header or preamble
-
-  for (size_t i = 0; i < (ELECTRA_NUM_BITS*2); ++i) {
-    bits[i] = false; // Initialize all bits to 0
-  }
-  for (size_t i = 0; i < (2*ELECTRA_NUM_BITS);){ // this fuanction make  68 bit list of true or false based on the raw input
-    if(longheader && data.peek_mark(ELECTRA_TIME_UNIT*2)){
-      longheader = false;
-      bits[i] = true;
-      bits[i + 1] = false;
-      bits[i + 2] = false;
-      i += 3;
-    }
-    else if (longheader && data.peek_mark(ELECTRA_TIME_UNIT)){
-      longheader = false;
-      bits[i] = true;
-      bits[i + 1] = false;
-      i += 2;
-    }
-    else if (data.peek_mark(ELECTRA_TIME_UNIT)){ 
-      bits[i] = false;
-      i++;
-    }
-    else if (data.peek_space(ELECTRA_TIME_UNIT)){
-      bits[i] = true;
-      i++;
-    } 
-    else if (data.peek_mark(ELECTRA_TIME_UNIT*2)){
-      bits[i] = false;
-      bits[i + 1] = false;
-      i += 2;
-    }
-    else if (data.peek_space(ELECTRA_TIME_UNIT*2)){
-      bits[i] = true;
-      bits[i + 1] = true;
-      i += 2;
-    }
-    else{
-      ESP_LOGV(TAG, "bit duration error");
-      return false;
-    }
-    data.advance(); // moves to next bit
+  else{ 
+      ESP_LOGV(TAG, "Sucsses!");
   }
 
-  for (size_t i = 0; i < (ELECTRA_NUM_BITS); i++){
-    if (bits[i * 2] && !bits[i * 2 + 1]){
-      decode.num |= (1ULL << ((ELECTRA_NUM_BITS -1) -i));
-    }
-    else if (!bits[i * 2] && bits[i * 2 + 1]){
-      decode.num &= ~(1ULL << ((ELECTRA_NUM_BITS -1) -i));
-    }
-    else {
-      ESP_LOGV(TAG, "not manchester coded");
-      return false;
-    }
-  } // munchster tranlation, every 2 bits are migrated into 1, if its 10 -> 1, if 01 -> 1, if 00 or 11, this is an error.
+  if (decode.num == 0) return false;
 
-  if (!decode.ones1 == 1 || !decode.zeros1 == 0 || !decode.zeros2 == 0){
-    ESP_LOGD(TAG, "decoded command does not meet expectations");
-    return false;
-  } // make sure the decoded code falls within electra expectations
-
-
-  ESP_LOGV(TAG, "Recived electra code: %llu", decode.num);
   if ((decode.power) == 1 && (this->mode != climate::CLIMATE_MODE_OFF)){ // if this is a power command, and the state is not off, turn off.
     this->mode = climate::CLIMATE_MODE_OFF;
   }
@@ -358,7 +246,6 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     this->swing_mode = climate::CLIMATE_SWING_OFF;
   }
 
-
   this->target_temperature = (decode.temperature + 15); // temp
 
   this->active_mode_ = this->mode; // keep the active mode in sync
@@ -366,6 +253,89 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   return true;
 
 } // end on recive
+
+ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData &data){
+
+  bool bits[ELECTRA_NUM_BITS*2]; // a list of all bits tranlstaed, Mark -> 0 Space -> 1
+  ElectraCode decode = { 0 }; // reset the Electra code union
+  bool longheader = false; // if the command is a turn on/off the first bit is 1, that means space -> mark, but the header also ends with space, so there is a "long header"
+
+
+  if (!data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT *3)) { // handles header
+    if (data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT *4)){ // handles long header 
+      longheader = true;
+
+      }else {
+      ESP_LOGV(TAG, "Header fail");
+      return { 0 };
+    }
+  }
+
+  data.advance(2);  // Skip header or preamble
+
+  for (size_t i = 0; i < (ELECTRA_NUM_BITS*2); ++i) {
+    bits[i] = false; // Initialize all bits to 0
+  }
+  for (size_t i = 0; i < (2*ELECTRA_NUM_BITS);){ // this fuanction make a 68 bit list of true or false based on the raw input
+    if(longheader && data.peek_mark(ELECTRA_TIME_UNIT*2)){
+      longheader = false;
+      bits[i] = true;
+      bits[i + 1] = false;
+      bits[i + 2] = false;
+      i += 3;
+    }
+    else if (longheader && data.peek_mark(ELECTRA_TIME_UNIT)){
+      longheader = false;
+      bits[i] = true;
+      bits[i + 1] = false;
+      i += 2;
+    }
+    else if (data.peek_mark(ELECTRA_TIME_UNIT)){ 
+      bits[i] = false;
+      i++;
+    }
+    else if (data.peek_space(ELECTRA_TIME_UNIT)){
+      bits[i] = true;
+      i++;
+    } 
+    else if (data.peek_mark(ELECTRA_TIME_UNIT*2)){
+      bits[i] = false;
+      bits[i + 1] = false;
+      i += 2;
+    }
+    else if (data.peek_space(ELECTRA_TIME_UNIT*2)){
+      bits[i] = true;
+      bits[i + 1] = true;
+      i += 2;
+    }
+    else{
+      ESP_LOGV(TAG, "bit duration error");
+      return { 0 };
+    }
+    data.advance(); // moves to next bit
+  }
+
+  for (size_t i = 0; i < (ELECTRA_NUM_BITS); i++){
+    if (bits[i * 2] && !bits[i * 2 + 1]){
+      decode.num |= (1ULL << ((ELECTRA_NUM_BITS -1) -i));
+    }
+    else if (!bits[i * 2] && bits[i * 2 + 1]){
+      decode.num &= ~(1ULL << ((ELECTRA_NUM_BITS -1) -i));
+    }
+    else {
+      ESP_LOGV(TAG, "not manchester coded");
+      return  { 0 };
+    }
+  } // munchster tranlation, every 2 bits are migrated into 1, if its 10 -> 1, if 01 -> 1, if 00 or 11, this is an error.
+
+  if (!decode.ones1 == 1 || !decode.zeros1 == 0 || !decode.zeros2 == 0){
+    ESP_LOGD(TAG, "decoded command does not meet expectations");
+    return { 0 };
+  } // make sure the decoded code falls within electra expectations
+
+  return decode;
+  ESP_LOGV(TAG, "Recived electra code: %llu", decode.num);
+}
 
 } // name space electra
 }// namespace esphome
