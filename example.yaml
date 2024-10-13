@@ -25,11 +25,18 @@ remote_transmitter:
  carrier_duty_percent: 50%  #test with different values to see what works best
  id: ir_transmitter
 
+ remote_receiver:
+  pin: 
+    number: (your pin)
+    inverted: True(or False, try both to see what works)
+  id: ir_receiver
+
  climate:
   - platform: electra
     name: (your name)
     id: someid
     transmitter_id: ir_transmitter
+    receiver_id: ir_receiver
     supports_off_command: True
     sensor: temp
     # all options suported in IR Remote Climate are suported
