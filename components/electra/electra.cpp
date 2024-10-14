@@ -249,33 +249,33 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
     bits[i] = false; // Initialize all bits to 0
   }
   for (size_t i = 0; i < (2*ELECTRA_NUM_BITS);){ // this fuanction make a 68 bit list of true or false based on the raw input
-    if(longheader && data.peek_mark(ELECTRA_DECODE_DOUBLE_MARK_TIME_UNIT)){
+    if(longheader && data.peek_mark(ELECTRA_TIME_UNIT*2)){
       longheader = false;
       bits[i] = true;
       bits[i + 1] = false;
       bits[i + 2] = false;
       i += 3;
     }
-    else if (longheader && (check_electra_mark(data))){
+    else if (longheader && (data.peek_mark(ELECTRA_TIME_UNIT) || data.peek_mark(ELECTRA_TIME_UNIT - 250))){
       longheader = false;
       bits[i] = true;
       bits[i + 1] = false;
       i += 2;
     }
-    else if (check_electra_mark(data)){ 
+    else if (data.peek_mark(ELECTRA_TIME_UNIT) || data.peek_mark(ELECTRA_TIME_UNIT - 250)){ 
       bits[i] = false;
       i++;
     }
-    else if (check_electra_space(data)){
+    else if (data.peek_space(ELECTRA_TIME_UNIT) || data.peek_space(ELECTRA_TIME_UNIT - 250)){
       bits[i] = true;
       i++;
     } 
-    else if (data.peek_mark(ELECTRA_DECODE_DOUBLE_MARK_TIME_UNIT)){
+    else if (data.peek_mark(ELECTRA_TIME_UNIT*2)){
       bits[i] = false;
       bits[i + 1] = false;
       i += 2;
     }
-    else if (data.peek_space(ELECTRA_DECODE_DOUBLE_SPACE_TIME_UNIT)){
+    else if (data.peek_space(ELECTRA_TIME_UNIT*2)){
       bits[i] = true;
       bits[i + 1] = true;
       i += 2;
@@ -314,7 +314,7 @@ ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data
   int runs;
   for (int j = 0; j < 3; j++){
     runs = 0;
-    for ( ;(!data.expect_mark(ELECTRA_DECODE_TRIPLE_MARK_TIME_UNIT)) && runs < (2*ELECTRA_NUM_BITS); runs ++)
+    for ( ;(!data.expect_mark(ELECTRA_TIME_UNIT*3)) && runs < (2*ELECTRA_NUM_BITS); runs ++)
     if (runs >= ((2 * ELECTRA_NUM_BITS) - 1)){ // it has been 68 bits without finding an header, give up!
       ESP_LOGV(TAG, "No Headers Found, Stops Searching" );
       return { 0 };
@@ -327,13 +327,6 @@ ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data
   }
   return { 0 };
   
-}
-
-bool ElectraClimate::check_electra_mark(remote_base::RemoteReceiveData &data) {// gives a wide margine of error for marks
-  return data.peek_mark(850) || data.peek_mark(420);
-}
-bool ElectraClimate::check_electra_space(remote_base::RemoteReceiveData &data) {// gives a wide margine of error for spaces
-  return data.peek_space(1000) || data.peek_space(482);
 }
 // end of decoding area
 
