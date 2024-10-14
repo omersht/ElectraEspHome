@@ -20,9 +20,12 @@ with:
 climate:
   - platform: electra
 ```
+*note for the best results, it is recommanded to set the tolerance of your IR reciver to 35%, see example.yaml
+
 additional options:
 
 Electra AC's(airwell) uses the same command for on/off, but some of these devices also supports a dedicated off command, that will turn the AC off if its on, but wont turn it on if its off, but not all Electra AC's respond to this command.
+
 ```
 climate:
   - platform: electra

@@ -29,7 +29,11 @@ remote_transmitter:
   pin: 
     number: (your pin)
     inverted: True(or False, try both to see what works)
+    mode: INPUT_PULLUP
   id: ir_receiver
+  tolerance: 
+    type: time
+    value: 450us
 
  climate:
   - platform: electra

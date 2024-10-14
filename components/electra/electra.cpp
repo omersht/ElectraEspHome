@@ -275,7 +275,7 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
       bits[i + 1] = false;
       i += 2;
     }
-    else if (data.peek_space(ELECTRA_TIME_UNIT*2)){
+    else if (data.peek_space(ELECTRA_DECODE_DOUBLE_SPACE_TIME_UNIT)){
       bits[i] = true;
       bits[i + 1] = true;
       i += 2;
@@ -330,10 +330,10 @@ ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data
 }
 
 bool ElectraClimate::check_electra_mark(remote_base::RemoteReceiveData &data) {// gives a wide margine of error for marks
-  return data.peek_mark(900) || data.peek_mark(550) || data.peek_mark(357) || data.peek_mark(200) || data.peek_mark(125);
+  return data.peek_mark(850) || data.peek_mark(420);
 }
 bool ElectraClimate::check_electra_space(remote_base::RemoteReceiveData &data) {// gives a wide margine of error for spaces
-  return data.peek_space(1150) || data.peek_space(700) || data.peek_space(450) || data.peek_space(270) || data.peek_space(165);
+  return data.peek_space(1000) || data.peek_space(482);
 }
 // end of decoding area
 
