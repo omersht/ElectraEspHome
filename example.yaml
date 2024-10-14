@@ -32,8 +32,8 @@ remote_transmitter:
     mode: INPUT_PULLUP
   id: ir_receiver
   tolerance: 
-    type: time
-    value: 450us
+    type: percentage
+    value: 35%
 
  climate:
   - platform: electra
