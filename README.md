@@ -57,3 +57,4 @@ esphome:
 
 to do list:
 * create an home assistant blueprint, to enable the use of contact sensors on the ac to report the actual state
+* while receving works, almost 100% of the time when the remote is pointed right at it, when its not, it performs worst then my sensibo device, of course the sensibo has, 2 IR recivers in it, and presumably better quality(mine are cheap 9₪(~2.5$) tuya ir blasters,running on libretiny), but I think looking at the raw data, it can also be improved by software.
