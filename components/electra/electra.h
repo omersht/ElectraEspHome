@@ -72,11 +72,8 @@ class ElectraClimate : public climate_ir::ClimateIR {
  protected:
 
   /// declartion of variables
-  #define ELECTRA_DECODE_SPACE_TIME_UNIT 1000 // while the time unit supposed to be the same, I have found decoding to work better 950 while encoding with 1000
-  #define ELECTRA_DECODE_MARK_TIME_UNIT 900
-  #define ELECTRA_DECODE_SHORT_MARK_TIME_UNIT 550
-  #define ELECTRA_DECODE_TRIPLE_MARK_TIME_UNIT 2950
-  #define ELECTRA_DECODE_DOUBLE_MARK_TIME_UNIT 1700
+  #define ELECTRA_DECODE_TRIPLE_MARK_TIME_UNIT 3000
+  #define ELECTRA_DECODE_DOUBLE_MARK_TIME_UNIT 1825
   #define ELECTRA_TIME_UNIT 1000
   #define ELECTRA_NUM_BITS 34
   bool supportsOff;
@@ -92,6 +89,8 @@ class ElectraClimate : public climate_ir::ClimateIR {
   /// decodes the incoming signal
   ElectraCode decode_electra(remote_base::RemoteReceiveData data);
   ElectraCode analyze_electra(remote_base::RemoteReceiveData &data);
+  bool check_electra_mark(remote_base::RemoteReceiveData &data);
+  bool check_electra_space(remote_base::RemoteReceiveData &data);
 };
 
 
