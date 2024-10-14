@@ -323,6 +323,7 @@ ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data
       return decode;
     }
     ESP_LOGV(TAG, "failled to decode, trying again" );
+    data.advance();
     attempts++;
   }
   ESP_LOGV(TAG, "decoding failled 3 times, stops trying" );
