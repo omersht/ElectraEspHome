@@ -235,7 +235,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
 }
 // all fuanction from here down are helper fuanctions for decoding,
 
-ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){ // this funaction recives a mark header-less data(the header space is not stript away, it can be 1 of 2 things) and decodes it.
+ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){ // this function recives a mark header-less data(the header space is not stript away, it can be 1 of 2 things) and decodes it.
 
   bool bits[ELECTRA_NUM_BITS*2]; // a list of all bits tranlstaed, Mark -> 0 Space -> 1
   ElectraCode decode = { 0 }; // reset the Electra code union
@@ -257,17 +257,17 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
       bits[i + 2] = false;
       i += 3;
     }
-    else if (longheader && (data.peek_mark(ELECTRA_TIME_UNIT) || data.peek_mark(ELECTRA_TIME_UNIT - 250))){
+    else if (longheader && (data.peek_mark(ELECTRA_TIME_UNIT) || data.peek_mark(ELECTRA_TIME_UNIT - 400))){
       longheader = false;
       bits[i] = true;
       bits[i + 1] = false;
       i += 2;
     }
-    else if (data.peek_mark(ELECTRA_TIME_UNIT) || data.peek_mark(ELECTRA_TIME_UNIT - 250)){ 
+    else if (data.peek_mark(ELECTRA_TIME_UNIT) || data.peek_mark(ELECTRA_TIME_UNIT - 400)){ 
       bits[i] = false;
       i++;
     }
-    else if (data.peek_space(ELECTRA_TIME_UNIT) || data.peek_space(ELECTRA_TIME_UNIT - 250)){
+    else if (data.peek_space(ELECTRA_TIME_UNIT) || data.peek_space(ELECTRA_TIME_UNIT - 400)){
       bits[i] = true;
       i++;
     } 
@@ -307,25 +307,31 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
   } // make sure the decoded code falls within electra expectations
 
   return decode;
-  ESP_LOGV(TAG, "Recived electra code: %llu", decode.num);
 }
 
-ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data){ // this fuanction founds electra headers, strips them away, and give them to the decode electra
+ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data){ // this function founds electra headers, strips them away, and give them to the decode electra
   ElectraCode decode = { 0 };
+  int attempts = 0;
   int runs;
-  for (int j = 0; j < 3; j++){
-    runs = 0;
-    for ( ;(!data.expect_mark(ELECTRA_TIME_UNIT*3)) && runs < (2*ELECTRA_NUM_BITS); runs ++)
-    if (runs >= ((2 * ELECTRA_NUM_BITS) - 1)){ // it has been 68 bits without finding an header, give up!
-      ESP_LOGV(TAG, "No Headers Found, Stops Searching" );
+  while (attempts < 3){
+    for (runs = 0 ;
+    ((!(data.peek_space(ELECTRA_TIME_UNIT*3) || data.peek_space(ELECTRA_TIME_UNIT*4)))) // checks for any header spaces, if found, end the loop
+     && runs < (3*ELECTRA_NUM_BITS); runs ++){ // if the loop went over the loop limit, stop searching
+      data.advance();
+    } //only checks fot the space, often times the mark gets lost in trasmission
+    decode = decode_electra(data);
+    if (runs >= (3*ELECTRA_NUM_BITS)){
+      ESP_LOGV(TAG, "no headers found" );
       return { 0 };
     }
-    decode = decode_electra(data);
     if (decode.num != 0){
       return decode;
     }
-    else ESP_LOGV(TAG, "failled to decode, trying again" );
+    ESP_LOGV(TAG, "failed to decode, trying again" );
+    data.advance();
+    attempts++;
   }
+  ESP_LOGV(TAG, "decoding failed 3 times, stops trying" );
   return { 0 };
   
 }
