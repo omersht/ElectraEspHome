@@ -307,25 +307,25 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
   } // make sure the decoded code falls within electra expectations
 
   return decode;
-  ESP_LOGV(TAG, "Recived electra code: %llu", decode.num);
 }
 
 ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data){ // this fuanction founds electra headers, strips them away, and give them to the decode electra
   ElectraCode decode = { 0 };
-  int runs;
-  for (int j = 0; j < 3; j++){
-    runs = 0;
-    for ( ;((!(data.peek_space(ELECTRA_TIME_UNIT*3)) || data.peek_space(ELECTRA_TIME_UNIT*4))) && runs < (3*ELECTRA_NUM_BITS); runs ++) data.advance(); //only checks fot the space, often times the mark gets lost in trasmission
-    if (runs >= ((3 * ELECTRA_NUM_BITS) - 1)){ // it has been 102 bits without finding an header, give up!
-      ESP_LOGV(TAG, "No Headers Found, Stops Searching" );
-      return { 0 };
-    }
+  int attempts = 0;
+  while (attempts < 3){
+    for (int runs = 0 ;
+    ((!(data.peek_space(ELECTRA_TIME_UNIT*3) || data.peek_space(ELECTRA_TIME_UNIT*4)))) // checks for any header spaces, if found, end the loop
+     && runs < (3*ELECTRA_NUM_BITS); runs ++){ // if the loop went over the loop limit, stop serching
+      data.advance();
+    } //only checks fot the space, often times the mark gets lost in trasmission
     decode = decode_electra(data);
     if (decode.num != 0){
       return decode;
     }
-    else ESP_LOGV(TAG, "failled to decode, trying again" );
+    ESP_LOGV(TAG, "failled to decode, trying again" );
+    attempts++;
   }
+  ESP_LOGV(TAG, "decoding failled 3 times, stops trying" );
   return { 0 };
   
 }
