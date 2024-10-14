@@ -20,7 +20,6 @@ with:
 climate:
   - platform: electra
 ```
-*note for the best results, it is recommanded to set the tolerance of your IR reciver to 500us, see example.yaml
 
 additional options:
 
