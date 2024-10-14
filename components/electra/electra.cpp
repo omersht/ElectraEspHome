@@ -315,7 +315,7 @@ ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data
   int runs;
   for (int j = 0; j < 3; j++){
     runs = 0;
-    for ( ;((!(data.peek_space(ELECTRA_TIME_UNIT*3)) || data.peek_space(ELECTRA_TIME_UNIT*4))) && runs < (2*ELECTRA_NUM_BITS); runs ++) data.advance(); //only checks fot the space, often times the mark gets lost in trasmission
+    for ( ;((!(data.peek_space(ELECTRA_TIME_UNIT*3)) || data.peek_space(ELECTRA_TIME_UNIT*4))) && runs < (3*ELECTRA_NUM_BITS); runs ++) data.advance(); //only checks fot the space, often times the mark gets lost in trasmission
     if (runs >= ((3 * ELECTRA_NUM_BITS) - 1)){ // it has been 102 bits without finding an header, give up!
       ESP_LOGV(TAG, "No Headers Found, Stops Searching" );
       return { 0 };
