@@ -4,22 +4,18 @@
 namespace esphome {
 namespace electra {
 
+// run time variables, no need to save state in reboot
 static const char *const TAG = "electra.climate";
+climate::ClimateMode active_mode_;
 
 void ElectraClimate::setup() {
   climate_ir::ClimateIR::setup();
-
-  auto restore = this->restore_state_();
-  if (restore.has_value()) {
-    restore->apply(this);
-  } else {
-    this->active_mode_ = this->mode;
-  }
+  active_mode_ = this->mode;
 }
 
 void ElectraClimate::control(const climate::ClimateCall &call) {
   climate_ir::ClimateIR::control(call);
-  this->active_mode_ = this->mode;
+  active_mode_ = this->mode;
 }
 
 void ElectraClimate::setOffSupport(bool supports){
@@ -43,158 +39,141 @@ void ElectraClimate::sync_state(){
 }
 
 void ElectraClimate::transmit_state() {
-  if (this->active_mode_ != climate::CLIMATE_MODE_OFF || this->mode != climate::CLIMATE_MODE_OFF){
+  if (active_mode_ != climate::CLIMATE_MODE_OFF || this->mode != climate::CLIMATE_MODE_OFF){
     ElectraCode code = { 0 };
     code.ones1 = 1;
  // original before the switch    code.fan = IRElectraFan::IRElectraFanAuto;
 
  // Set swing bit based on the swing mode
-    if (this->swing_mode) {
+  if (this->swing_mode) {
       code.swing = 1;  // Swing ON
     } else {
       code.swing = 0;  // Swing OFF
     }
 	
  /// below is for adding the fan mode
-    switch (this->fan_mode.value()) {
-      case climate::CLIMATE_FAN_LOW:
-        code.fan = IRElectraFan::IRElectraFanLow;
-        break;
-      case climate::CLIMATE_FAN_MEDIUM:
-        code.fan = IRElectraFan::IRElectraFanMedium;
-        break;
-      case climate::CLIMATE_FAN_HIGH:
-        code.fan = IRElectraFan::IRElectraFanHigh;
-        break;
-      case climate::CLIMATE_FAN_AUTO:  //Added this for Auto Fan Mode
-        code.fan = IRElectraFan::IRElectraFanAuto;
-        break;
-      default:
-        code.fan = IRElectraFan::IRElectraFanAuto;// original IRElectraFanAuto
-        break;
-    }
+  switch (this->fan_mode.value()) {
+    case climate::CLIMATE_FAN_LOW:
+      code.fan = IRElectraFan::IRElectraFanLow;
+      break;
+    case climate::CLIMATE_FAN_MEDIUM:
+      code.fan = IRElectraFan::IRElectraFanMedium;
+      break;
+    case climate::CLIMATE_FAN_HIGH:
+      code.fan = IRElectraFan::IRElectraFanHigh;
+      break;
+    case climate::CLIMATE_FAN_AUTO:  //Added this for Auto Fan Mode
+      code.fan = IRElectraFan::IRElectraFanAuto;
+      break;
+    default:
+      code.fan = IRElectraFan::IRElectraFanAuto;// original IRElectraFanAuto
+      break;
+  }
  /// above is for adding the fan mode
 
-    switch (this->mode) {
-      case climate::CLIMATE_MODE_COOL:
+  switch (this->mode) {
+    case climate::CLIMATE_MODE_COOL:
+      code.mode = IRElectraMode::IRElectraModeCool;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_HEAT:
+      code.mode = IRElectraMode::IRElectraModeHeat;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_FAN_ONLY:
+      code.mode = IRElectraMode::IRElectraModeFan;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_HEAT_COOL:
+      code.mode = IRElectraMode::IRElectraModeAuto;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_DRY:
+      code.mode = IRElectraMode::IRElectraModeDry;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_OFF:
+    default:
+      if (supportsOff){
+        code.mode = IRElectraMode::IRElectraModeOff;
+        code.power = 1;
+      }else {
         code.mode = IRElectraMode::IRElectraModeCool;
-        code.power = this->active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-        break;
-      case climate::CLIMATE_MODE_HEAT:
-        code.mode = IRElectraMode::IRElectraModeHeat;
-        code.power = this->active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-        break;
-      case climate::CLIMATE_MODE_FAN_ONLY:
-        code.mode = IRElectraMode::IRElectraModeFan;
-        code.power = this->active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-        break;
-      case climate::CLIMATE_MODE_HEAT_COOL:
-        code.mode = IRElectraMode::IRElectraModeAuto;
-        code.power = this->active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-        break;
-      case climate::CLIMATE_MODE_DRY:
-        code.mode = IRElectraMode::IRElectraModeDry;
-        code.power = this->active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-        break;
-      case climate::CLIMATE_MODE_OFF:
-      default:
-        if (supportsOff){
-          code.mode = IRElectraMode::IRElectraModeOff;
-          code.power = 1;
-        }else {
-          code.mode = IRElectraMode::IRElectraModeCool;
-          code.power = 1;
-        }
-        break;
-    }
-    auto temp = (uint8_t) roundf(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
-    code.temperature = temp - 15;
+        code.power = 1;
+      }
+      break;
+  }
+  auto temp = std::lround(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
+  code.temperature = temp - 15;
 
-    ESP_LOGD(TAG, "Sending electra code: %lld", code.num);
+  ESP_LOGD(TAG, "Sending electra code: %lld", code.num);
 
-    auto transmit = this->transmitter_->transmit();
-    auto data = transmit.get_data();
+  auto transmit = this->transmitter_->transmit();
+  auto data = transmit.get_data();
 
-    data->set_carrier_frequency(38000);
-    uint16_t repeat = 3;
+  data->set_carrier_frequency(38000);
+  uint16_t repeat = 3;
 
-    for (uint16_t r = 0; r < repeat; r++) {
-      // Header
-      data->mark(3 * ELECTRA_TIME_UNIT);
-      uint16_t next_value = 3 * ELECTRA_TIME_UNIT;
-      bool is_next_space = true;
+  for (uint16_t r = 0; r < repeat; r++) {
+    // Header
+    data->mark(3 * ELECTRA_TIME_UNIT);
+    uint16_t next_value = 3 * ELECTRA_TIME_UNIT;
+    bool is_next_space = true;
 
-      // Data
-      for (int j = ELECTRA_NUM_BITS - 1; j>=0; j--)
-      {
-        uint8_t bit = (code.num >> j) & 1;
+    // Data
+    for (int j = ELECTRA_NUM_BITS - 1; j>=0; j--){
+      uint8_t bit = (code.num >> j) & 1;
 
-        // if current index is SPACE
-        if (is_next_space) {
-          // one is one unit low, then one unit up
-          // since we're pointing at SPACE, we should increase it by a unit
-          // then add another MARK unit
-          if (bit == 1) {
-            data->space(next_value + ELECTRA_TIME_UNIT);
-            next_value = ELECTRA_TIME_UNIT;
-            is_next_space = false;
-
-          } else {
-            // we need a MARK unit, then SPACE unit
-            data->space(next_value);
-            data->mark(ELECTRA_TIME_UNIT);
-            next_value = ELECTRA_TIME_UNIT;
-            is_next_space = true;
-          }
+      // if current index is SPACE
+      if (is_next_space) {
+        // one is one unit low, then one unit up
+        // since we're pointing at SPACE, we should increase it by a unit
+        // then add another MARK unit
+        if (bit == 1) {
+          data->space(next_value + ELECTRA_TIME_UNIT);
+          next_value = ELECTRA_TIME_UNIT;
+          is_next_space = false;
 
         } else {
-          // current index is MARK
-          
-          // one is one unit low, then one unit up
-          if (bit == 1) {
-            data->mark(next_value);
-            data->space(ELECTRA_TIME_UNIT);
-            next_value = ELECTRA_TIME_UNIT;
-            is_next_space = false;
+          // we need a MARK unit, then SPACE unit
+          data->space(next_value);
+          data->mark(ELECTRA_TIME_UNIT);
+          next_value = ELECTRA_TIME_UNIT;
+          is_next_space = true;
+        }
 
-          } else {
-            data->mark(next_value + ELECTRA_TIME_UNIT);
-            next_value = ELECTRA_TIME_UNIT;
-            is_next_space = true;
-          }
+      } else {
+        // current index is MARK
+          
+        // one is one unit low, then one unit up
+        if (bit == 1) {
+          data->mark(next_value);
+          data->space(ELECTRA_TIME_UNIT);
+          next_value = ELECTRA_TIME_UNIT;
+          is_next_space = false;
+
+        } else {
+          data->mark(next_value + ELECTRA_TIME_UNIT);
+          next_value = ELECTRA_TIME_UNIT;
+          is_next_space = true;
         }
       }
-
-      // Last value must be SPACE
-      data->space(next_value);
     }
 
-    // Footer
-    data->mark(4 * ELECTRA_TIME_UNIT);
+    // Last value must be SPACE
+    data->space(next_value);
+  }
 
-    transmit.perform();
+  // Footer
+  data->mark(4 * ELECTRA_TIME_UNIT);
+
+  transmit.perform();
   }
 } // end transmit state
 
-
 bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   ElectraCode decode;
-  decode = decode_electra(data);
-  if (decode.num == 0){
-    ESP_LOGV(TAG, "retrying to decode");
-    for(int i = 0; i < 50; i++){
-      if (data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT*3) || data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT*4)){
-        decode = decode_electra(data);
-        i = 50;
-      }
-      else{
-        data.advance();
-      }
-    }
-  }
-  else{ 
-      ESP_LOGV(TAG, "Sucsses!");
-  }
+  decode = analyze_electra(data);
 
   if (decode.num == 0) return false;
 
@@ -248,68 +227,61 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
 
   this->target_temperature = (decode.temperature + 15); // temp
 
-  this->active_mode_ = this->mode; // keep the active mode in sync
+  active_mode_ = this->mode; // keep the active mode in sync
   this->publish_state(); // update HA
   return true;
 
-} // end on recive
+}
+// all fuanction from here down are helper fuanctions for decoding,
 
-ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData &data){
+ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){ // this funaction recives a mark header-less data(the header space is not stript away, it can be 1 of 2 things) and decodes it.
 
   bool bits[ELECTRA_NUM_BITS*2]; // a list of all bits tranlstaed, Mark -> 0 Space -> 1
   ElectraCode decode = { 0 }; // reset the Electra code union
   bool longheader = false; // if the command is a turn on/off the first bit is 1, that means space -> mark, but the header also ends with space, so there is a "long header"
 
+  if (data.expect_space(ELECTRA_TIME_UNIT *4)){ // handles long header 
+    longheader = true;
+  } else data.advance();
 
-  if (!data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT *3)) { // handles header
-    if (data.peek_item(ELECTRA_TIME_UNIT*3, ELECTRA_TIME_UNIT *4)){ // handles long header 
-      longheader = true;
-
-      }else {
-      ESP_LOGV(TAG, "Header fail");
-      return { 0 };
-    }
-  }
-
-  data.advance(2);  // Skip header or preamble
 
   for (size_t i = 0; i < (ELECTRA_NUM_BITS*2); ++i) {
     bits[i] = false; // Initialize all bits to 0
   }
   for (size_t i = 0; i < (2*ELECTRA_NUM_BITS);){ // this fuanction make a 68 bit list of true or false based on the raw input
-    if(longheader && data.peek_mark(ELECTRA_TIME_UNIT*2)){
+    if(longheader && data.peek_mark(ELECTRA_DECODE_DOUBLE_MARK_TIME_UNIT)){
       longheader = false;
       bits[i] = true;
       bits[i + 1] = false;
       bits[i + 2] = false;
       i += 3;
     }
-    else if (longheader && data.peek_mark(ELECTRA_TIME_UNIT)){
+    else if (longheader && (check_electra_mark(data))){
       longheader = false;
       bits[i] = true;
       bits[i + 1] = false;
       i += 2;
     }
-    else if (data.peek_mark(ELECTRA_TIME_UNIT)){ 
+    else if (check_electra_mark(data)){ 
       bits[i] = false;
       i++;
     }
-    else if (data.peek_space(ELECTRA_TIME_UNIT)){
+    else if (check_electra_space(data)){
       bits[i] = true;
       i++;
     } 
-    else if (data.peek_mark(ELECTRA_TIME_UNIT*2)){
+    else if (data.peek_mark(ELECTRA_DECODE_DOUBLE_MARK_TIME_UNIT)){
       bits[i] = false;
       bits[i + 1] = false;
       i += 2;
     }
-    else if (data.peek_space(ELECTRA_TIME_UNIT*2)){
+    else if (data.peek_space(ELECTRA_DECODE_DOUBLE_SPACE_TIME_UNIT)){
       bits[i] = true;
       bits[i + 1] = true;
       i += 2;
     }
     else{
-      ESP_LOGV(TAG, "bit duration error");
+      ESP_LOGV(TAG, "bit duration error,at bit %zu", i);
       return { 0 };
     }
     data.advance(); // moves to next bit
@@ -328,7 +300,7 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData &data)
     }
   } // munchster tranlation, every 2 bits are migrated into 1, if its 10 -> 1, if 01 -> 1, if 00 or 11, this is an error.
 
-  if (!decode.ones1 == 1 || !decode.zeros1 == 0 || !decode.zeros2 == 0){
+  if (!decode.ones1 == 1 || !decode.zeros1 == 0 || !decode.zeros2 == 0 || !decode.zeros3 == 0 || !decode.zeros4 == 0){
     ESP_LOGD(TAG, "decoded command does not meet expectations");
     return { 0 };
   } // make sure the decoded code falls within electra expectations
@@ -336,6 +308,34 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData &data)
   return decode;
   ESP_LOGV(TAG, "Recived electra code: %llu", decode.num);
 }
+
+ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data){ // this fuanction founds electra headers, strips them away, and give them to the decode electra
+  ElectraCode decode = { 0 };
+  int runs;
+  for (int j = 0; j < 3; j++){
+    runs = 0;
+    for ( ;(!data.expect_mark(ELECTRA_DECODE_TRIPLE_MARK_TIME_UNIT)) && runs < (2*ELECTRA_NUM_BITS); runs ++)
+    if (runs >= ((2 * ELECTRA_NUM_BITS) - 1)){ // it has been 68 bits without finding an header, give up!
+      ESP_LOGV(TAG, "No Headers Found, Stops Searching" );
+      return { 0 };
+    }
+    decode = decode_electra(data);
+    if (decode.num != 0){
+      return decode;
+    }
+    else ESP_LOGV(TAG, "failled to decode, trying again" );
+  }
+  return { 0 };
+  
+}
+
+bool ElectraClimate::check_electra_mark(remote_base::RemoteReceiveData &data) {// gives a wide margine of error for marks
+  return data.peek_mark(850) || data.peek_mark(420);
+}
+bool ElectraClimate::check_electra_space(remote_base::RemoteReceiveData &data) {// gives a wide margine of error for spaces
+  return data.peek_space(1000) || data.peek_space(482);
+}
+// end of decoding area
 
 } // name space electra
 }// namespace esphome
