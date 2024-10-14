@@ -31,9 +31,6 @@ remote_transmitter:
     inverted: True(or False, try both to see what works)
     mode: INPUT_PULLUP
   id: ir_receiver
-  tolerance: 
-    type: time
-    value: 500us
 
  climate:
   - platform: electra
