@@ -319,11 +319,11 @@ ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data
      && runs < (3*ELECTRA_NUM_BITS); runs ++){ // if the loop went over the loop limit, stop searching
       data.advance();
     } //only checks fot the space, often times the mark gets lost in trasmission
-    decode = decode_electra(data);
     if (runs >= (3*ELECTRA_NUM_BITS)){
       ESP_LOGV(TAG, "no headers found" );
       return { 0 };
     }
+    decode = decode_electra(data);
     if (decode.num != 0){
       return decode;
     }
