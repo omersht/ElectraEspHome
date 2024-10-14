@@ -235,7 +235,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
 }
 // all fuanction from here down are helper fuanctions for decoding,
 
-ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){ // this funaction recives a mark header-less data(the header space is not stript away, it can be 1 of 2 things) and decodes it.
+ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){ // this function recives a mark header-less data(the header space is not stript away, it can be 1 of 2 things) and decodes it.
 
   bool bits[ELECTRA_NUM_BITS*2]; // a list of all bits tranlstaed, Mark -> 0 Space -> 1
   ElectraCode decode = { 0 }; // reset the Electra code union
@@ -309,24 +309,29 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
   return decode;
 }
 
-ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data){ // this fuanction founds electra headers, strips them away, and give them to the decode electra
+ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data){ // this function founds electra headers, strips them away, and give them to the decode electra
   ElectraCode decode = { 0 };
   int attempts = 0;
+  int runs;
   while (attempts < 3){
-    for (int runs = 0 ;
+    for (runs = 0 ;
     ((!(data.peek_space(ELECTRA_TIME_UNIT*3) || data.peek_space(ELECTRA_TIME_UNIT*4)))) // checks for any header spaces, if found, end the loop
-     && runs < (3*ELECTRA_NUM_BITS); runs ++){ // if the loop went over the loop limit, stop serching
+     && runs < (3*ELECTRA_NUM_BITS); runs ++){ // if the loop went over the loop limit, stop searching
       data.advance();
     } //only checks fot the space, often times the mark gets lost in trasmission
     decode = decode_electra(data);
+    if (runs >= (3*ELECTRA_NUM_BITS)){
+      ESP_LOGV(TAG, "no headers found" );
+      return { 0 };
+    }
     if (decode.num != 0){
       return decode;
     }
-    ESP_LOGV(TAG, "failled to decode, trying again" );
+    ESP_LOGV(TAG, "failed to decode, trying again" );
     data.advance();
     attempts++;
   }
-  ESP_LOGV(TAG, "decoding failled 3 times, stops trying" );
+  ESP_LOGV(TAG, "decoding failed 3 times, stops trying" );
   return { 0 };
   
 }
