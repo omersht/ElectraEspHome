@@ -239,8 +239,11 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     this->preset = climate::CLIMATE_PRESET_NONE;
   }
   
+  uint8_t raw_temperature = 0;
+  raw_temperature |= (num.temp_only & 0b1);  // Get the LSB from temp_only
+  raw_temperature |= (num.universal_temperature << 1);  // Shift and combine
+  this->target_temperature = raw_temperature + 15;
 
-  this->target_temperature = (decode.temperature + 15); // temp
 
   active_mode_ = this->mode; // keep the active mode in sync
   this->publish_state(); // update HA
