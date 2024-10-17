@@ -10,7 +10,7 @@ climate::ClimateMode active_mode_;
 
 void ElectraClimate::setup() {
   climate_ir::ClimateIR::setup();
-  traits.set_supports_current_temperature(true);
+  climate::ClimateTraits().traits.set_supports_current_temperature(true);
   active_mode_ = this->mode;
 }
 
