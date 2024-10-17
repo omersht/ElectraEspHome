@@ -72,8 +72,8 @@ class ElectraClimate : public climate_ir::ClimateIR {
  protected:
 
   /// declartion of variables
-  #define ELECTRA_TIME_UNIT 1000
-  #define ELECTRA_NUM_BITS 34
+  static const int32_t ELECTRA_TIME_UNIT = 1000;
+  static const int32_t ELECTRA_NUM_BITS  = 34;
   bool supportsOff;
   /// end declartion
 

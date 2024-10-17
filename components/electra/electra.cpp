@@ -172,7 +172,7 @@ void ElectraClimate::transmit_state() {
 } // end transmit state
 
 bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
-  data.set_tolerance(500, esphome::remote_base::TOLERANCE_MODE_TIME);
+  data.set_tolerance((ELECTRA_TIME_UNIT / 2), esphome::remote_base::TOLERANCE_MODE_TIME);
   ElectraCode decode;
   decode = analyze_electra(data);
 
