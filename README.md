@@ -20,7 +20,7 @@ with:
 climate:
   - platform: electra
 ```
-
+note - you can use an [external temp sensor](https://esphome.io/components/sensor/homeassistant)
 additional options:
 
 Electra AC's(airwell) uses the same command for on/off, but some of these devices also supports a dedicated off command, that will turn the AC off if its on, but wont turn it on if its off, but not all Electra AC's respond to this command.
@@ -56,3 +56,4 @@ esphome:
 
 to do list:
  - [ ] create an home assistant blueprint, to enable the use of contact sensors on the ac to report the actual state
+ - [ ] understand the ifeel funaction
