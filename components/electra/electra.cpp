@@ -50,6 +50,13 @@ void ElectraClimate::transmit_state() {
     } else {
       code.swing = 0;  // Swing OFF
     }
+
+
+  if (this->preset == climate::CLIMATE_PRESET_SLEEP) {
+    code.sleep = 1;
+  } else {
+    code.sleep = 0;
+  }
 	
  /// below is for adding the fan mode
   switch (this->fan_mode.value()) {
@@ -221,10 +228,17 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
 
   if (decode.swing == 1){ // swing
     this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
-  }
-  else {
+  } else {
     this->swing_mode = climate::CLIMATE_SWING_OFF;
   }
+
+  if (decode.sleep == 1)
+  {
+    this->preset = climate::CLIMATE_PRESET_SLEEP;
+  } else {
+    this->preset = climate::CLIMATE_PRESET_NONE;
+  }
+  
 
   this->target_temperature = (decode.temperature + 15); // temp
 
