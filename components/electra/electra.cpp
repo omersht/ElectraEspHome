@@ -110,9 +110,9 @@ void ElectraClimate::transmit_state() {
       }
       break;
   }
+
   auto temp = std::lround(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
-  code.temp_only = (temp - 15) & 0b1;                // Set the LSB to temp_only (1 bit)
-  code.universal_temperature = ((temp - 15) >> 1);
+  code.temperature = temp - 15;
 
   ESP_LOGD(TAG, "Sending electra code: %lld", code.num);
 
@@ -185,11 +185,11 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   decode = analyze_electra(data);
   if (decode.ifeel == 1 && decode.ifeel_oriented == 1){
     uint8_t iFeel_temperature = 0;
-    iFeel_temperature |= (decode.universal_temperature << 1);
-    iFeel_temperature |= (decode.temp_only & 0b1);
-    this->current_temperature = float(iFeel_temperature + 15);
+    iFeel_temperature |= (decode.temperature << 1);
+    iFeel_temperature |= (decode.ifeel_temp & 0b1);
+    this->current_temperature = float(iFeel_temperature + 5);
     this->publish_state();
-    ESP_LOGD(TAG, "A reverse Ifeel command was recevied room temp: %d", iFeel_temperature + 15);
+    ESP_LOGD(TAG, "A reverse Ifeel command was recevied room temp: %d", iFeel_temperature + 5);
     return true;
   }
 
@@ -249,10 +249,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     this->preset = climate::CLIMATE_PRESET_NONE;
   }
   
-  uint8_t raw_temperature = 0;
-  raw_temperature |= (decode.temp_only & 0b1);  // Get the LSB from temp_only
-  raw_temperature |= (decode.universal_temperature << 1);  // Shift and combine
-  this->target_temperature = raw_temperature + 15;
+  this->target_temperature = decode.temperature + 15;
 
 
   active_mode_ = this->mode; // keep the active mode in sync

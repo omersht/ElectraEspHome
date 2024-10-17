@@ -17,9 +17,8 @@ typedef union ElectraCode {
  //    26: Zero
  //    25: Swing On/Off
  //    24: iFeel On/Off
- //    23: iFeel tempbit
- // 22-20: Universl Temp, both iFeel and control uses 4 bits but Temp control 19-22 an iFeel 20-23, 0000 = 15 and 1111 = 30.
- //    19: control temp bit
+ //    23: iFeel tempbit iFeel uses additonal bit for temp, and 5 is added.
+ // 22-19: Universl Temp, used for both controling the temp and iFeel, for controling the value is increesed by 15
  //    18: Sleep mode On/Off
  // 17- 2: Zeros
  //     1: One
@@ -30,8 +29,7 @@ typedef union ElectraCode {
         uint64_t ones1 : 1;
         uint64_t zeros2 : 16;
         uint64_t sleep : 1;
-        uint64_t temp_only : 1;
-        uint64_t universal_temperature : 3;
+        uint64_t temperature : 4;
         uint64_t ifeel_temp : 1;
         uint64_t ifeel : 1;
         uint64_t swing : 1;
