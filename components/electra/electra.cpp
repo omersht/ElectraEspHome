@@ -9,8 +9,9 @@ static const char *const TAG = "electra.climate";
 climate::ClimateMode active_mode_;
 
 climate::ClimateTraits ElectraClimate::traits(){
-  climate_ir::ClimateIR::traits();
+  auto traits = trclimate_ir::ClimateIR::traits();
   traits.set_supports_current_temperature(true);
+  return traits;
 }
 
 void ElectraClimate::setup() {
