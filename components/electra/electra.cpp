@@ -111,7 +111,8 @@ void ElectraClimate::transmit_state() {
       break;
   }
   auto temp = std::lround(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
-  code.temperature = temp - 15;
+  code.temp_only = (temp - 15) & 0b1;                // Set the LSB to temp_only (1 bit)
+  num.universal_temperature = ((temp - 15) >> 1);
 
   ESP_LOGD(TAG, "Sending electra code: %lld", code.num);
 
@@ -240,8 +241,8 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   }
   
   uint8_t raw_temperature = 0;
-  raw_temperature |= (num.temp_only & 0b1);  // Get the LSB from temp_only
-  raw_temperature |= (num.universal_temperature << 1);  // Shift and combine
+  raw_temperature |= (decode.temp_only & 0b1);  // Get the LSB from temp_only
+  raw_temperature |= (decode.universal_temperature << 1);  // Shift and combine
   this->target_temperature = raw_temperature + 15;
 
 
