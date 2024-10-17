@@ -246,9 +246,6 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
   } else data.advance();
 
 
-  for (size_t i = 0; i < (ELECTRA_NUM_BITS*2); ++i) {
-    bits[i] = false; // Initialize all bits to 0
-  }
   for (size_t i = 0; i < (2*ELECTRA_NUM_BITS);){ // this fuanction make a 68 bit list of true or false based on the raw input
     if(longheader && data.peek_mark(ELECTRA_TIME_UNIT*2)){
       longheader = false;
