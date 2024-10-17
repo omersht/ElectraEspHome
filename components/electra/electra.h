@@ -79,7 +79,7 @@ class ElectraClimate : public climate_ir::ClimateIR {
   bool supportsOff;
   /// end declartion
 
-  void traits() override;
+  climate::ClimateTraits traits() override;
   /// Transmit via IR the state of this climate controller.
   void transmit_state() override;
   /// Handle received IR Buffer
