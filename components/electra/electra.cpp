@@ -8,6 +8,11 @@ namespace electra {
 static const char *const TAG = "electra.climate";
 climate::ClimateMode active_mode_;
 
+void ElectraClimate::traits(){
+  climate_ir::ClimateIR::traits();
+  traits.set_supports_current_temperature(true);
+}
+
 void ElectraClimate::setup() {
   climate_ir::ClimateIR::setup();
   active_mode_ = this->mode;
