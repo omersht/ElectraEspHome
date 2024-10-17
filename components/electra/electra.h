@@ -16,7 +16,7 @@ typedef union ElectraCode {
  // 27-26: Zeros
  //    25: Swing On/Off
  //    24: iFeel On/Off
- //    23: Zero
+ //    23: Remote Type, 0 is RC-3, 1 is RC-7
  // 22-19: Temperature, where 15 is 0000, 30 is 1111
  //    18: Sleep mode On/Off
  // 17- 2: Zeros
@@ -29,7 +29,7 @@ typedef union ElectraCode {
         uint64_t zeros2 : 16;
         uint64_t sleep : 1;
         uint64_t temperature : 4;
-        uint64_t zeros3 : 1;
+        uint64_t remote : 1;
         uint64_t ifeel : 1;
         uint64_t swing : 1;
         uint64_t zeros4 : 2;
