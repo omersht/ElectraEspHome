@@ -187,9 +187,9 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     uint8_t iFeel_temperature = 0;
     iFeel_temperature |= (decode.universal_temperature << 1);
     iFeel_temperature |= (decode.temp_only & 0b1);
-    this->current_temperature = iFeel_temperature + 15;
+    this->current_temperature = float(iFeel_temperature + 15);
     this->publish_state();
-    ESP_LOGD(TAG, "A reverse Ifeel command was recevied");
+    ESP_LOGD(TAG, "A reverse Ifeel command was recevied room temp: %d", iFeel_temperature + 15);
     return true;
   }
 
