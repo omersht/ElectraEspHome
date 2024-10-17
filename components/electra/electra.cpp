@@ -298,6 +298,8 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
     }
   } // munchster tranlation, every 2 bits are migrated into 1, if its 10 -> 1, if 01 -> 1, if 00 or 11, this is an error.
 
+  ESP_LOGD(TAG, "decoded code: %lld", decode.num);
+
   if (!decode.ones1 == 1 || !decode.zeros1 == 0 || !decode.zeros2 == 0 || !decode.zeros3 == 0 || !decode.zeros4 == 0){
     ESP_LOGV(TAG, "decoded successfully, but data got courpted");
     return { 0 };
