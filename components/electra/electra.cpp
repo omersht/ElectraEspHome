@@ -183,6 +183,15 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   data.set_tolerance((ELECTRA_TIME_UNIT / 2), esphome::remote_base::TOLERANCE_MODE_TIME);
   ElectraCode decode;
   decode = analyze_electra(data);
+  if (decode.ifeel == 1 && decode.ifeel_oriented == 1){
+    uint8_t iFeel_temperature = 0;
+    iFeel_temperature |= (decode.universal_temperature << 1);
+    iFeel_temperature |= (decode.temp_only & 0b1);
+    this->current_temperature = iFeel_temperature + 15;
+    this->publish_state();
+    ESP_LOGD(TAG, "A everse Ifeel command was recevied");
+    return true;
+  }
 
   if (decode.num == 0) return false;
 
