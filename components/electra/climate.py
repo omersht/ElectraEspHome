@@ -9,7 +9,8 @@ CODEOWNERS = ["@omersht"]
 CONF_SUPPORTS_OFF_COMMAND = 'supports_off_command'
 electra_ns = cg.esphome_ns.namespace("electra")
 ElectraClimate = electra_ns.class_("ElectraClimate", climate_ir.ClimateIR)
-PRESET_iFEEL = 1001
+
+PRESET_IFEEL = 1001
 
 CONFIG_SCHEMA = climate_ir.CLIMATE_IR_WITH_RECEIVER_SCHEMA.extend(
     {
@@ -24,4 +25,3 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await climate_ir.register_climate_ir(var, config)
     cg.add(var.setOffSupport(config[CONF_SUPPORTS_OFF_COMMAND]))
-    cg.add(var.add_supported_preset(PRESET_iFEEL, "iFEEL"))
