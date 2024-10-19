@@ -21,9 +21,8 @@ void ElectraClimate::setup() {
   active_mode_ = this->mode;
   this->iFeel_sensor_ = new esphome::binary_sensor::BinarySensor();
   this->iFeel_sensor_->set_name("iFeel");
-  this->add_binary_sensor()(this->iFeel_sensor_);
   this->iFeel_sensor_->set_icon("mdi:home-thermometer-outline");
-  this->iFeel_sensor_->publish_state(true);
+  this->iFeel_sensor_->ublish_initial_state(false);
 }
 
 void ElectraClimate::control(const climate::ClimateCall &call) {
