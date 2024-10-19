@@ -24,6 +24,7 @@ void ElectraClimate::setup() {
 void ElectraClimate::control(const climate::ClimateCall &call) {
   climate_ir::ClimateIR::control(call);
   active_mode_ = this->mode;
+  if (this->preset == climate::CLIMATE_PRESET_COMFORT) this->preset = climate::climate::CLIMATE_PRESET_NONE;
 }
 
 void ElectraClimate::setOffSupport(bool supports){
@@ -60,10 +61,10 @@ void ElectraClimate::transmit_state() {
     }
 
 
-    if (this->preset == climate::CLIMATE_PRESET_SLEEP) {
-      code.sleep = 1;
+    if (this->preset == climate::CLIMATE_PRESET_COMFORT) {
+      code.ifeel = 1;
     } else {
-      code.sleep = 0;
+      code.ifeel = 0;
     }
 	
     /// below is for adding the fan mode
@@ -199,10 +200,12 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   decode = analyze_electra(data);
   if (decode.ifeel == 1 && decode.ifeel_oriented == 1){
 
+    this->preset = climate::CLIMATE_PRESET_COMFORT;
     uint8_t iFeel_temperature = 0;
     iFeel_temperature |= (decode.temperature & 0b1111);
     iFeel_temperature |= (decode.ifeel_temp & 0b1) << 4;
     this->current_temperature = float(iFeel_temperature + 5);
+    transmit_electra(decode);
 
     this->publish_state();
     ESP_LOGD(TAG, "A reverse Ifeel command was recevied room temp: %d", iFeel_temperature + 5);
@@ -257,9 +260,9 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     this->swing_mode = climate::CLIMATE_SWING_OFF;
   }
 
-  if (decode.sleep == 1)
+  if (decode.ifeel == 1)
   {
-    this->preset = climate::CLIMATE_PRESET_SLEEP;
+    this->preset = climate::CLIMATE_PRESET_COMFORT;
   } else {
     this->preset = climate::CLIMATE_PRESET_NONE;
   }

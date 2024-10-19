@@ -64,7 +64,7 @@ class ElectraClimate : public climate_ir::ClimateIR {
       : climate_ir::ClimateIR(RC3_TEMP_MIN, RC3_TEMP_MAX, 1.0f, true, true,
                               {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM,
                                climate::CLIMATE_FAN_HIGH},
-                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}, {climate::CLIMATE_PRESET_NONE, climate::CLIMATE_PRESET_SLEEP}) {
+                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}, {climate::CLIMATE_PRESET_NONE, climate::CLIMATE_PRESET_COMFORT}) {
                               }
 
   void setup() override;
