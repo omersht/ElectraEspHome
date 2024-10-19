@@ -76,6 +76,7 @@ class ElectraClimate : public climate_ir::ClimateIR {
   /// declartion of variables
   static const int32_t ELECTRA_TIME_UNIT = 1000;
   static const int32_t ELECTRA_NUM_BITS  = 34;
+  this->iFeel_sensor_ = new BinarySensor();
   /// end declartion
 
   climate::ClimateTraits traits() override;
