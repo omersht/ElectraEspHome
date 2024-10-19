@@ -13,11 +13,11 @@ typedef union ElectraCode {
  //    33: Power bit, if this bit is ON, the A/C will toggle it's power.
  // 32-30: Mode - Cool, heat etc.
  // 29-28: Fan - Low, medium etc.
- //    27: iFeel, bit 24 tells the ac if iFeel is on or not, and this bit, tells if the current command need to be read as an iFeel(temp 20 - 23 ) or change(temp 19 - 22)
+ //    27: iFeel, bit 24 tells the ac if iFeel is on or not, and this bit, tells if the current command need to be read as an iFeel(temp 19 - 23 ) or change(temp 19 - 22)
  //    26: Zero
  //    25: Swing On/Off
  //    24: iFeel On/Off
- //    23: iFeel tempbit iFeel uses additonal bit for temp, and 5 is added.
+ //    23: iFeel tempbit, iFeel uses additonal bit for temp, and 5 is added.
  // 22-19: Universl Temp, used for both controling the temp and iFeel, for controling the value is increesed by 15
  //    18: Sleep mode On/Off
  // 17- 2: Zeros
