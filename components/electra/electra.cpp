@@ -7,6 +7,8 @@ namespace electra {
 // run time variables, no need to save state in reboot
 static const char *const TAG = "electra.climate";
 climate::ClimateMode active_mode_;
+bool supportsOff;
+
 
 climate::ClimateTraits ElectraClimate::traits(){
   auto traits = climate_ir::ClimateIR::traits();
@@ -26,10 +28,10 @@ void ElectraClimate::control(const climate::ClimateCall &call) {
 
 void ElectraClimate::setOffSupport(bool supports){
   if (supports){
-    this->supportsOff = true;
+    supportsOff = true;
   }
   else {
-    this->supportsOff = false;
+    supportsOff = false;
   }
 }
 
@@ -48,79 +50,85 @@ void ElectraClimate::transmit_state() {
   if (active_mode_ != climate::CLIMATE_MODE_OFF || this->mode != climate::CLIMATE_MODE_OFF){
     ElectraCode code = { 0 };
     code.ones1 = 1;
- // original before the switch    code.fan = IRElectraFan::IRElectraFanAuto;
+    // original before the switch    code.fan = IRElectraFan::IRElectraFanAuto;
 
- // Set swing bit based on the swing mode
-  if (this->swing_mode) {
+    // Set swing bit based on the swing mode
+    if (this->swing_mode) {
       code.swing = 1;  // Swing ON
     } else {
       code.swing = 0;  // Swing OFF
     }
 
 
-  if (this->preset == climate::CLIMATE_PRESET_SLEEP) {
-    code.sleep = 1;
-  } else {
-    code.sleep = 0;
-  }
+    if (this->preset == climate::CLIMATE_PRESET_SLEEP) {
+      code.sleep = 1;
+    } else {
+      code.sleep = 0;
+    }
 	
- /// below is for adding the fan mode
-  switch (this->fan_mode.value()) {
-    case climate::CLIMATE_FAN_LOW:
-      code.fan = IRElectraFan::IRElectraFanLow;
-      break;
-    case climate::CLIMATE_FAN_MEDIUM:
-      code.fan = IRElectraFan::IRElectraFanMedium;
-      break;
-    case climate::CLIMATE_FAN_HIGH:
-      code.fan = IRElectraFan::IRElectraFanHigh;
-      break;
-    case climate::CLIMATE_FAN_AUTO:  //Added this for Auto Fan Mode
-      code.fan = IRElectraFan::IRElectraFanAuto;
-      break;
-    default:
-      code.fan = IRElectraFan::IRElectraFanAuto;// original IRElectraFanAuto
-      break;
-  }
- /// above is for adding the fan mode
+    /// below is for adding the fan mode
+    switch (this->fan_mode.value()) {
+      case climate::CLIMATE_FAN_LOW:
+        code.fan = IRElectraFan::IRElectraFanLow;
+        break;
+      case climate::CLIMATE_FAN_MEDIUM:
+        code.fan = IRElectraFan::IRElectraFanMedium;
+        break;
+      case climate::CLIMATE_FAN_HIGH:
+        code.fan = IRElectraFan::IRElectraFanHigh;
+        break;
+      case climate::CLIMATE_FAN_AUTO:  //Added this for Auto Fan Mode
+        code.fan = IRElectraFan::IRElectraFanAuto;
+        break;
+      default:
+        code.fan = IRElectraFan::IRElectraFanAuto;// original IRElectraFanAuto
+        break;
+    }
+    /// above is for adding the fan mode
 
-  switch (this->mode) {
-    case climate::CLIMATE_MODE_COOL:
-      code.mode = IRElectraMode::IRElectraModeCool;
-      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-      break;
-    case climate::CLIMATE_MODE_HEAT:
-      code.mode = IRElectraMode::IRElectraModeHeat;
-      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-      break;
-    case climate::CLIMATE_MODE_FAN_ONLY:
-      code.mode = IRElectraMode::IRElectraModeFan;
-      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-      break;
-    case climate::CLIMATE_MODE_HEAT_COOL:
-      code.mode = IRElectraMode::IRElectraModeAuto;
-      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-      break;
-    case climate::CLIMATE_MODE_DRY:
-      code.mode = IRElectraMode::IRElectraModeDry;
-      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-      break;
-    case climate::CLIMATE_MODE_OFF:
-    default:
-      if (supportsOff){
-        code.mode = IRElectraMode::IRElectraModeOff;
-        code.power = 1;
-      }else {
+    switch (this->mode) {
+      case climate::CLIMATE_MODE_COOL:
         code.mode = IRElectraMode::IRElectraModeCool;
-        code.power = 1;
-      }
-      break;
+        code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+        break;
+      case climate::CLIMATE_MODE_HEAT:
+        code.mode = IRElectraMode::IRElectraModeHeat;
+        code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+        break;
+      case climate::CLIMATE_MODE_FAN_ONLY:
+        code.mode = IRElectraMode::IRElectraModeFan;
+        code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+        break;
+      case climate::CLIMATE_MODE_HEAT_COOL:
+        code.mode = IRElectraMode::IRElectraModeAuto;
+        code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+        break;
+      case climate::CLIMATE_MODE_DRY:
+        code.mode = IRElectraMode::IRElectraModeDry;
+        code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+        break;
+      case climate::CLIMATE_MODE_OFF:
+      default:
+        if (supportsOff){
+          code.mode = IRElectraMode::IRElectraModeOff;
+          code.power = 1;
+        }else {
+          code.mode = IRElectraMode::IRElectraModeCool;
+          code.power = 1;
+        }
+        break;
+    }
+
+    auto temp = std::lround(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
+    code.temperature = temp - 15;
+
+    ESP_LOGD(TAG, "Sending electra code: %lld", code.num);
+
+    transmit_electra(code);
   }
+} // end transmit state
 
-  auto temp = std::lround(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
-  code.temperature = temp - 15;
-
-  ESP_LOGD(TAG, "Sending electra code: %lld", code.num);
+void ElectraClimate::transmit_electra(ElectraCode &code){
 
   auto transmit = this->transmitter_->transmit();
   auto data = transmit.get_data();
@@ -182,22 +190,23 @@ void ElectraClimate::transmit_state() {
   data->mark(4 * ELECTRA_TIME_UNIT);
 
   transmit.perform();
-  }
-} // end transmit state
+
+}
 
 bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   data.set_tolerance((ELECTRA_TIME_UNIT / 2), esphome::remote_base::TOLERANCE_MODE_TIME);
   ElectraCode decode;
   decode = analyze_electra(data);
   if (decode.ifeel == 1 && decode.ifeel_oriented == 1){
+
     uint8_t iFeel_temperature = 0;
     iFeel_temperature |= (decode.temperature & 0b1111);
     iFeel_temperature |= (decode.ifeel_temp & 0b1) << 4;
     this->current_temperature = float(iFeel_temperature + 5);
+
     this->publish_state();
     ESP_LOGD(TAG, "A reverse Ifeel command was recevied room temp: %d", iFeel_temperature + 5);
-    return true;
-  }
+  } else this->target_temperature = decode.temperature + 15;
 
   if (decode.num == 0) return false;
 
@@ -255,7 +264,6 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     this->preset = climate::CLIMATE_PRESET_NONE;
   }
   
-  this->target_temperature = decode.temperature + 15;
 
 
   active_mode_ = this->mode; // keep the active mode in sync
@@ -264,7 +272,6 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
 
 }
 // all fuanction from here down are helper fuanctions for decoding,
-
 ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){ // this function recives a mark header-less data(the header space is not stript away, it can be 1 of 2 things) and decodes it.
 
   bool bits[ELECTRA_NUM_BITS*2]; // a list of all bits tranlstaed, Mark -> 0 Space -> 1
