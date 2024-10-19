@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esphome/components/climate_ir/climate_ir.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
 
 namespace esphome {
 namespace electra {
@@ -76,6 +77,7 @@ class ElectraClimate : public climate_ir::ClimateIR {
   /// declartion of variables
   static const int32_t ELECTRA_TIME_UNIT = 1000;
   static const int32_t ELECTRA_NUM_BITS  = 34;
+  esphome::binary_sensor::BinarySensor iFeel_sensor = new BinarySensor();
   /// end declartion
 
   climate::ClimateTraits traits() override;
