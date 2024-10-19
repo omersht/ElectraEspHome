@@ -24,8 +24,15 @@ void ElectraClimate::setup() {
 void ElectraClimate::control(const climate::ClimateCall &call) {
   climate_ir::ClimateIR::control(call);
   active_mode_ = this->mode;
-  if (this->preset == climate::CLIMATE_PRESET_COMFORT) this->preset = climate::CLIMATE_PRESET_NONE;
-  this->publish_state();
+  if (this->mode == climate::CLIMATE_MODE_OFF){
+    this->preset = climate::CLIMATE_PRESET_NONE;
+    this->publish_state();
+  }
+  if (call.get_preset().has_value()  && *call.get_preset() == climate::CLIMATE_PRESET_COMFORT){
+    this->preset = climate::CLIMATE_PRESET_NONE;
+    this->publish_state(); 
+  }
+
 }
 
 void ElectraClimate::setOffSupport(bool supports){
