@@ -82,7 +82,7 @@ class ElectraClimate : public climate_ir::ClimateIR {
   /// create an ir code to send
   void transmit_state() override;
   /// encodes the recevied data in electra format and transmit it.
-  void transmit_electra(ElectraCode &code)
+  void transmit_electra(ElectraCode &code);
   /// Handle received IR Buffer
   bool on_receive(remote_base::RemoteReceiveData data) override;
   /// override control
