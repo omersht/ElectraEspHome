@@ -376,5 +376,6 @@ ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data
 }
 // end of decoding area
 
+
 } // name space electra
 }// namespace esphome
