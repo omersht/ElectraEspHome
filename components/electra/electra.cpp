@@ -31,6 +31,7 @@ void ElectraClimate::control(const climate::ClimateCall &call) {
   if (call.get_preset().has_value()  && *call.get_preset() == climate::CLIMATE_PRESET_COMFORT){
     this->preset = climate::CLIMATE_PRESET_NONE;
     this->publish_state(); 
+    ESP_LOGE(TAG, "iFEEL should only be set with the remote,");
   }
 
 }
