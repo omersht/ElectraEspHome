@@ -206,7 +206,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
 
     this->publish_state();
     ESP_LOGD(TAG, "A reverse Ifeel command was recevied room temp: %d", iFeel_temperature + 5);
-  } else this->target_temperature = decode.temperature + 15;
+  }
 
   if (decode.num == 0) return false;
 
@@ -264,6 +264,9 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     this->preset = climate::CLIMATE_PRESET_NONE;
   }
   
+  if (!decode.ifeel_oriented == 1){
+    this->target_temperature = decode.temperature + 15;
+  }
 
 
   active_mode_ = this->mode; // keep the active mode in sync
