@@ -10,8 +10,6 @@ CONF_SUPPORTS_OFF_COMMAND = 'supports_off_command'
 electra_ns = cg.esphome_ns.namespace("electra")
 ElectraClimate = electra_ns.class_("ElectraClimate", climate_ir.ClimateIR)
 
-PRESET_IFEEL = 1001
-
 CONFIG_SCHEMA = climate_ir.CLIMATE_IR_WITH_RECEIVER_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(ElectraClimate),
