@@ -19,9 +19,6 @@ climate::ClimateTraits ElectraClimate::traits(){
 void ElectraClimate::setup() {
   climate_ir::ClimateIR::setup();
   active_mode_ = this->mode;
-  this->iFeel_sensor = new binary_sensor::BinarySensor();;
-  this->iFeel_sensor->set_name("iFeel");
-  this->iFeel_sensor->publish_state(true);
 }
 
 void ElectraClimate::control(const climate::ClimateCall &call) {
