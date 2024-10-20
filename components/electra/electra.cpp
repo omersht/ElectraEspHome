@@ -133,13 +133,6 @@ void ElectraClimate::transmit_state() {
     ESP_LOGD(TAG, "Sending electra code: %lld", code.num);
 
     transmit_electra(code);
-
-
-    if (this->preset == climate::CLIMATE_PRESET_COMFORT && !code.power == 1){
-      for (int i = 0; i < 100000; i++); // busy wait, for the ifeel, not a preety solution, but a solution.
-      ElectraCode codeToSend = ifeel_create();
-      transmit_electra(codeToSend);
-    }
   }
 } // end transmit state
 
