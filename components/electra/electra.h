@@ -58,7 +58,7 @@ typedef enum IRElectraMode {
 
 
 
-class ElectraClimate : public climate_ir::ClimateIR, public PollingComponent {
+class ElectraClimate : public virtual esphome::Component, public climate_ir::ClimateIR, public PollingComponent {
  public:
   ElectraClimate()
       : climate_ir::ClimateIR(RC3_TEMP_MIN, RC3_TEMP_MAX, 1.0f, true, true,
