@@ -98,7 +98,7 @@ class ElectraClimate : public climate_ir::ClimateIR, public PollingComponent {
         ElectraCode codeToSend = ifeel_create();
         transmit_electra(codeToSend);
     }
-    ESP_LOGV(TAG, "4 time is up, but no");
+    ESP_LOGV("electra.climate", "4 minuts is up, but no iFeel enabled");
   }
 };
 
