@@ -1,7 +1,7 @@
 #pragma once
 
 #include "esphome/components/climate_ir/climate_ir.h"
-#include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/core/component.h"
 
 namespace esphome {
 namespace electra {
@@ -58,14 +58,14 @@ typedef enum IRElectraMode {
 
 
 
-class ElectraClimate : public climate_ir::ClimateIR {
+class ElectraClimate : public climate_ir::ClimateIR, public PollingComponent {
  public:
   ElectraClimate()
       : climate_ir::ClimateIR(RC3_TEMP_MIN, RC3_TEMP_MAX, 1.0f, true, true,
                               {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM,
                                climate::CLIMATE_FAN_HIGH},
-                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}, {climate::CLIMATE_PRESET_NONE, climate::CLIMATE_PRESET_COMFORT}) {
-                              }
+                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}, {climate::CLIMATE_PRESET_NONE, climate::CLIMATE_PRESET_COMFORT}),
+        PollingComponent(240000) {}
 
   void setup() override;
   void setOffSupport(bool supports);
@@ -93,6 +93,13 @@ class ElectraClimate : public climate_ir::ClimateIR {
   ElectraCode analyze_electra(remote_base::RemoteReceiveData &data);
   /// iFeel code creation.
   ElectraCode ifeel_create();
+  void update() override {
+    if (this->preset == climate::CLIMATE_PRESET_COMFORT && this->mode != climate::CLIMATE_MODE_OFF){
+        ElectraCode codeToSend = ifeel_create();
+        transmit_electra(codeToSend);
+    }
+    ESP_LOGV(TAG, "4 time is up, but no");
+  }
 };
 
 

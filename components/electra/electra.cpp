@@ -28,12 +28,11 @@ void ElectraClimate::control(const climate::ClimateCall &call) {
     this->preset = climate::CLIMATE_PRESET_NONE;
     this->publish_state();
   }
-  if (call.get_preset().has_value()  && *call.get_preset() == climate::CLIMATE_PRESET_COMFORT){
+  if (call.get_preset().has_value()  && *call.get_preset() == climate::CLIMATE_PRESET_COMFORT && this->current_temperature == NAN){
     this->preset = climate::CLIMATE_PRESET_NONE;
     this->publish_state(); 
-    ESP_LOGE(TAG, "iFEEL should only be set with the remote,");
+    ESP_LOGE(TAG, "to use iFEEL you must have a tempeture reading, check docs to use the original remote temp sensor");
   }
-
 }
 
 void ElectraClimate::setOffSupport(bool supports){
@@ -69,12 +68,6 @@ void ElectraClimate::transmit_state() {
       code.swing = 0;  // Swing OFF
     }
 
-
-    if (this->preset == climate::CLIMATE_PRESET_COMFORT) {
-      code.ifeel = 1;
-    } else {
-      code.ifeel = 0;
-    }
 	
     /// below is for adding the fan mode
     switch (this->fan_mode.value()) {
@@ -128,6 +121,11 @@ void ElectraClimate::transmit_state() {
         }
         break;
     }
+    if (this->preset == climate::CLIMATE_PRESET_COMFORT && !code.power == 1) {
+      code.ifeel = 1;
+    } else {
+      code.ifeel = 0;
+    }
 
     auto temp = std::lround(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
     code.temperature = temp - 15;
@@ -135,6 +133,10 @@ void ElectraClimate::transmit_state() {
     ESP_LOGD(TAG, "Sending electra code: %lld", code.num);
 
     transmit_electra(code);
+    if (this->preset == climate::CLIMATE_PRESET_COMFORT && !code.power == 1){
+      ElectraCode codeToSend = ifeel_create();
+      transmit_electra(codeToSend);
+    }
   }
 } // end transmit state
 
@@ -208,17 +210,11 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   ElectraCode decode;
   decode = analyze_electra(data);
   if (decode.ifeel == 1 && decode.ifeel_oriented == 1){
-
-    this->preset = climate::CLIMATE_PRESET_COMFORT;
     uint8_t iFeel_temperature = 0;
     iFeel_temperature |= (decode.temperature & 0b1111);
     iFeel_temperature |= (decode.ifeel_temp & 0b1) << 4;
     this->current_temperature = float(iFeel_temperature + 5);
-    ElectraCode codeToSend = ifeel_create();
-    transmit_electra(codeToSend);
-
     this->publish_state();
-    ESP_LOGD(TAG, "A reverse Ifeel command was recevied room temp: %d", iFeel_temperature + 5);
   }
 
   if (decode.num == 0) return false;
