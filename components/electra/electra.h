@@ -91,6 +91,8 @@ class ElectraClimate : public climate_ir::ClimateIR {
   /// decodes the incoming signal
   ElectraCode decode_electra(remote_base::RemoteReceiveData data);
   ElectraCode analyze_electra(remote_base::RemoteReceiveData &data);
+  /// iFeel code creation.
+  ElectraCode ifeel_create();
 };
 
 

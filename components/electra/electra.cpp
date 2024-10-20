@@ -214,7 +214,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     iFeel_temperature |= (decode.temperature & 0b1111);
     iFeel_temperature |= (decode.ifeel_temp & 0b1) << 4;
     this->current_temperature = float(iFeel_temperature + 5);
-    transmit_electra(decode);
+    transmit_electra(ifeel_create());
 
     this->publish_state();
     ESP_LOGD(TAG, "A reverse Ifeel command was recevied room temp: %d", iFeel_temperature + 5);
@@ -276,9 +276,7 @@ bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
     this->preset = climate::CLIMATE_PRESET_NONE;
   }
   
-  if (!decode.ifeel_oriented == 1){
-    this->target_temperature = decode.temperature + 15;
-  }
+  this->target_temperature = decode.temperature + 15;
 
 
   active_mode_ = this->mode; // keep the active mode in sync
@@ -387,7 +385,81 @@ ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data
   
 }
 // end of decoding area
+ElectraCode ElectraClimate::ifeel_create(){ // this function generates an iFeel command, with current temp and settings.
+  ElectraCode code = { 0 };
+  code.ones1 = 1;
+  code.ifeel = 1;
+  code.ifeel_oriented = 1;
+  int iFeel_temperature = static_cast<int>(this->current_temperature) - 5;
 
+  // Set swing bit based on the swing mode
+  if (this->swing_mode) {
+    code.swing = 1;  // Swing ON
+  } else {
+    code.swing = 0;  // Swing OFF
+  }
+  
+	
+    /// below is for adding the fan mode
+  switch (this->fan_mode.value()) {
+    case climate::CLIMATE_FAN_LOW:
+      code.fan = IRElectraFan::IRElectraFanLow;
+      break;
+    case climate::CLIMATE_FAN_MEDIUM:
+      code.fan = IRElectraFan::IRElectraFanMedium;
+      break;
+    case climate::CLIMATE_FAN_HIGH:
+      code.fan = IRElectraFan::IRElectraFanHigh;
+      break;
+    case climate::CLIMATE_FAN_AUTO:  //Added this for Auto Fan Mode
+      code.fan = IRElectraFan::IRElectraFanAuto;
+      break;
+    default:
+      code.fan = IRElectraFan::IRElectraFanAuto;// original IRElectraFanAuto
+      break;
+  }
+    /// above is for adding the fan mode
+
+  switch (this->mode) {
+    case climate::CLIMATE_MODE_COOL:
+      code.mode = IRElectraMode::IRElectraModeCool;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_HEAT:
+      code.mode = IRElectraMode::IRElectraModeHeat;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_FAN_ONLY:
+      code.mode = IRElectraMode::IRElectraModeFan;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_HEAT_COOL:
+      code.mode = IRElectraMode::IRElectraModeAuto;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_DRY:
+      code.mode = IRElectraMode::IRElectraModeDry;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_OFF:
+    default:
+      if (supportsOff){
+        code.mode = IRElectraMode::IRElectraModeOff;
+        code.power = 1;
+      }else {
+        code.mode = IRElectraMode::IRElectraModeCool;
+        code.power = 1;
+      }
+      break;
+  }
+  code.temperature = iFeel_temperature & 0b1111;   // Lower 4 bits
+  code.ifeel_temp = (iFeel_temperature >> 4) & 0b1; // 5th bi
+
+  ESP_LOGD(TAG, "iFeel code built: %lld", code.num);
+
+  return code;
+
+}
 
 } // name space electra
 }// namespace esphome
