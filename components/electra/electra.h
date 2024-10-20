@@ -58,14 +58,13 @@ typedef enum IRElectraMode {
 
 
 
-class ElectraClimate : public virtual esphome::Component, public climate_ir::ClimateIR, public PollingComponent {
+class ElectraClimate : public climate_ir::ClimateIR {
  public:
   ElectraClimate()
       : climate_ir::ClimateIR(RC3_TEMP_MIN, RC3_TEMP_MAX, 1.0f, true, true,
                               {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM,
                                climate::CLIMATE_FAN_HIGH},
-                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}, {climate::CLIMATE_PRESET_NONE, climate::CLIMATE_PRESET_COMFORT}),
-        PollingComponent(240000) {}
+                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}, {climate::CLIMATE_PRESET_NONE, climate::CLIMATE_PRESET_COMFORT}){}
 
   void setup() override;
   void setOffSupport(bool supports);
@@ -93,13 +92,6 @@ class ElectraClimate : public virtual esphome::Component, public climate_ir::Cli
   ElectraCode analyze_electra(remote_base::RemoteReceiveData &data);
   /// iFeel code creation.
   ElectraCode ifeel_create();
-  void update() override {
-    if (this->preset == climate::CLIMATE_PRESET_COMFORT && this->mode != climate::CLIMATE_MODE_OFF){
-        ElectraCode codeToSend = ifeel_create();
-        transmit_electra(codeToSend);
-    }
-    ESP_LOGV("electra.climate", "4 minuts is up, but no iFeel enabled");
-  }
 };
 
 
