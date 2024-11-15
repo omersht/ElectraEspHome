@@ -21,6 +21,9 @@ climate:
   - platform: electra
 ```
 note - you can use an [external temp sensor](https://esphome.io/components/sensor/homeassistant)
+
+I was able to understand the iFeel funaction, and document it in the code with notes. but it is a supur complicated fuanctiom to make, due to the remote reporting is own temp sensor state. so as of now, iFeel is not supported
+
 additional options:
 
 Electra AC's(airwell) uses the same command for on/off, but some of these devices also supports a dedicated off command, that will turn the AC off if its on, but wont turn it on if its off, but not all Electra AC's respond to this command.
@@ -55,5 +58,4 @@ esphome:
 ```
 
 to do list:
- - [ ] create an home assistant blueprint, to enable the use of contact sensors on the ac to report the actual state
- - [ ] understand the ifeel funaction
+ - [ ] create an home assistant blueprint, to enable the use of contact sensors on the ac.
