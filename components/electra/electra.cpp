@@ -39,6 +39,7 @@ void ElectraClimate::sync_state(){
 }
 
 void ElectraClimate::transmit_state() {
+  this->last_transmit_time_ = millis();
   if (active_mode_ != climate::CLIMATE_MODE_OFF || this->mode != climate::CLIMATE_MODE_OFF){
     ElectraCode code = { 0 };
     code.ones1 = 1;
@@ -179,6 +180,10 @@ void ElectraClimate::transmit_state() {
 } // end transmit state
 
 bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
+  if (millis() - this->last_transmit_time_ < 500) {
+    ESP_LOGV(TAG, "Blocked receive because of current trasmittion");
+    return false;
+  }
   data.set_tolerance((ELECTRA_TIME_UNIT / 2), esphome::remote_base::TOLERANCE_MODE_TIME);
   ElectraCode decode;
   decode = analyze_electra(data);
