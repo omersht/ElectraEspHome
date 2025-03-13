@@ -315,7 +315,7 @@ ElectraCode ElectraClimate::decode_electra(remote_base::RemoteReceiveData data){
       ESP_LOGV(TAG, "not manchester coded");
       return  { 0 };
     }
-  } // munchster tranlation, every 2 bits are migrated into 1, if its 10 -> 1, if 01 -> 1, if 00 or 11, this is an error.
+  } // munchster tranlation, every 2 bits are migrated into 1, if its 10 -> 1, if 01 -> 0, if 00 or 11, this is an error.
 
   ESP_LOGD(TAG, "decoded code: %lld", decode.num);
 
