@@ -39,83 +39,9 @@ void ElectraClimate::sync_state(){
 }
 
 void ElectraClimate::transmit_state() {
+  if (active_mode_ == climate::CLIMATE_MODE_OFF && this->mode == climate::CLIMATE_MODE_OFF) return;
+  ElectraCode code = encode_electra();
   this->last_transmit_time_ = millis();
-  if (active_mode_ != climate::CLIMATE_MODE_OFF || this->mode != climate::CLIMATE_MODE_OFF){
-    ElectraCode code = { 0 };
-    code.ones1 = 1;
- // original before the switch    code.fan = IRElectraFan::IRElectraFanAuto;
-
- // Set swing bit based on the swing mode
-  if (this->swing_mode) {
-      code.swing = 1;  // Swing ON
-    } else {
-      code.swing = 0;  // Swing OFF
-    }
-
-
-  if (this->preset == climate::CLIMATE_PRESET_SLEEP) {
-    code.sleep = 1;
-  } else {
-    code.sleep = 0;
-  }
-	
- /// below is for adding the fan mode
-  switch (this->fan_mode.value()) {
-    case climate::CLIMATE_FAN_LOW:
-      code.fan = IRElectraFan::IRElectraFanLow;
-      break;
-    case climate::CLIMATE_FAN_MEDIUM:
-      code.fan = IRElectraFan::IRElectraFanMedium;
-      break;
-    case climate::CLIMATE_FAN_HIGH:
-      code.fan = IRElectraFan::IRElectraFanHigh;
-      break;
-    case climate::CLIMATE_FAN_AUTO:  //Added this for Auto Fan Mode
-      code.fan = IRElectraFan::IRElectraFanAuto;
-      break;
-    default:
-      code.fan = IRElectraFan::IRElectraFanAuto;// original IRElectraFanAuto
-      break;
-  }
- /// above is for adding the fan mode
-
-  switch (this->mode) {
-    case climate::CLIMATE_MODE_COOL:
-      code.mode = IRElectraMode::IRElectraModeCool;
-      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-      break;
-    case climate::CLIMATE_MODE_HEAT:
-      code.mode = IRElectraMode::IRElectraModeHeat;
-      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-      break;
-    case climate::CLIMATE_MODE_FAN_ONLY:
-      code.mode = IRElectraMode::IRElectraModeFan;
-      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-      break;
-    case climate::CLIMATE_MODE_HEAT_COOL:
-      code.mode = IRElectraMode::IRElectraModeAuto;
-      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-      break;
-    case climate::CLIMATE_MODE_DRY:
-      code.mode = IRElectraMode::IRElectraModeDry;
-      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
-      break;
-    case climate::CLIMATE_MODE_OFF:
-    default:
-      if (supportsOff){
-        code.mode = IRElectraMode::IRElectraModeOff;
-        code.power = 1;
-      }else {
-        code.mode = IRElectraMode::IRElectraModeCool;
-        code.power = 1;
-      }
-      break;
-  }
-  auto temp = std::lround(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
-  code.temperature = temp - 15;
-
-  ESP_LOGD(TAG, "Sending electra code: %lld", code.num);
-
   auto transmit = this->transmitter_->transmit();
   auto data = transmit.get_data();
 
@@ -176,8 +102,81 @@ void ElectraClimate::transmit_state() {
   data->mark(4 * ELECTRA_TIME_UNIT);
 
   transmit.perform();
-  }
 } // end transmit state
+
+ElectraCode ElectraClimate::encode_electra(){
+  ElectraCode code = { 0 };
+  code.ones1 = 1;
+
+  //set swing
+  if (this->swing_mode) {
+    code.swing = 1;  // Swing ON
+  } else {
+    code.swing = 0;  // Swing OFF
+  }
+  //set sleep mode
+  if (this->preset == climate::CLIMATE_PRESET_SLEEP) {
+    code.sleep = 1;
+  } else {
+    code.sleep = 0;
+  }
+  //set fan mode
+  switch (this->fan_mode.value()) {
+    case climate::CLIMATE_FAN_LOW:
+      code.fan = IRElectraFan::IRElectraFanLow;
+      break;
+    case climate::CLIMATE_FAN_MEDIUM:
+      code.fan = IRElectraFan::IRElectraFanMedium;
+      break;
+    case climate::CLIMATE_FAN_HIGH:
+      code.fan = IRElectraFan::IRElectraFanHigh;
+      break;
+    case climate::CLIMATE_FAN_AUTO:  //Added this for Auto Fan Mode
+      code.fan = IRElectraFan::IRElectraFanAuto;
+      break;
+    default:
+      code.fan = IRElectraFan::IRElectraFanAuto;// original IRElectraFanAuto
+      break;
+  }
+  //set climate mode
+  switch (this->mode) {
+    case climate::CLIMATE_MODE_COOL:
+      code.mode = IRElectraMode::IRElectraModeCool;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_HEAT:
+      code.mode = IRElectraMode::IRElectraModeHeat;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_FAN_ONLY:
+      code.mode = IRElectraMode::IRElectraModeFan;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_HEAT_COOL:
+      code.mode = IRElectraMode::IRElectraModeAuto;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_DRY:
+      code.mode = IRElectraMode::IRElectraModeDry;
+      code.power = active_mode_ == climate::CLIMATE_MODE_OFF ? 1 : 0;
+      break;
+    case climate::CLIMATE_MODE_OFF:
+    default:
+      if (supportsOff){
+        code.mode = IRElectraMode::IRElectraModeOff;
+        code.power = 1;
+      }else {
+        code.mode = IRElectraMode::IRElectraModeCool;
+        code.power = 1;
+      }
+      break;
+  }
+  //set temp
+  auto temp = std::lround(clamp(this->target_temperature, this->minimum_temperature_, this->maximum_temperature_));
+  code.temperature = temp - 15;
+  ESP_LOGD(TAG, "encoded electra code: %lld", code.num);
+  return code;
+}
 
 bool ElectraClimate::on_receive(remote_base::RemoteReceiveData data){
   if (millis() - this->last_transmit_time_ < 500) {
@@ -336,7 +335,7 @@ ElectraCode ElectraClimate::analyze_electra(remote_base::RemoteReceiveData &data
     ((!(data.peek_space(ELECTRA_TIME_UNIT*3) || data.peek_space(ELECTRA_TIME_UNIT*4)))) // checks for any header spaces, if found, end the loop
      && runs < (3*ELECTRA_NUM_BITS); runs ++){ // if the loop went over the loop limit, stop searching
       data.advance();
-    } //only checks fot the space, often times the mark gets lost in trasmission
+    } //only checks for the space, often times the mark gets lost in trasmission
     if (runs >= (3*ELECTRA_NUM_BITS)){
       ESP_LOGV(TAG, "no headers found" );
       return { 0 };
